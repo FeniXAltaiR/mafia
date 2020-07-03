@@ -3,6 +3,16 @@ import App from "./App.vue";
 import router from "./router";
 import store from "./store";
 
+import "@/assets/css/index.css";
+
+import VueSocketio from "vue-socket.io";
+Vue.use(
+  new VueSocketio({
+    // debug: true,
+    connection: "http://192.168.1.41:7000"
+  })
+);
+
 Vue.config.productionTip = false;
 
 new Vue({
