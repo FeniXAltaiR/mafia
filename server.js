@@ -1,123 +1,75 @@
-/**
- * Server module.
- *
- *
- */
+const os = require('os')
+const app = require('express')()
+const http = require('http').createServer(app)
+const io = require('socket.io')(http)
 
-"use strict";
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE')
+  res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type')
+  res.setHeader('Access-Control-Allow-Credentials', true)
 
-// var environment = process.env.RTC_ENV || "local";
+  next()
+})
 
-var express = require("express");
-var cors = require("cors");
-const http = require("http");
+io.on('connect', function(socket) {
+  socket.on('test', msg => {
+    console.log(msg)
+    socket.emit('test', 'TEST')
+  })
 
-var serverPort = 7000;
-// var serverIpAddress = 'localhost'
-// var socketIoServer = '127.0.0.2' + ':' + serverPort;
-
-////////////////////////////////////////////////
-// SETUP SERVER
-////////////////////////////////////////////////
-var app = express();
-
-// function redirectSec(req, res, next) {
-//   if (req.headers['x-forwarded-proto'] == 'http') {
-//     var redirect = 'https://' + req.headers.host + req.path;
-//     console.log('Redirect to:' + redirect);
-//     res.redirect(redirect);
-//   } else {
-//     return next();
-//   }
-// }
-
-// app.use(redirectSec);
-
-// require('./router')(app, socketIoServer, environment);
-
-// Static content (css, js, .png, etc) is placed in /public
-// app.use(express.static(__dirname + '/public'));
-
-app.use(cors());
-
-// Location of our views
-// app.set('views', __dirname + '/views');
-
-// Use ejs as our rendering engine
-// app.set('view engine', 'ejs');
-
-// Tell Server that we are actually rendering HTML files through EJS.
-// app.engine('html', require('ejs').renderFile);
-
-const server = http.createServer(app);
-server.listen(serverPort, () => {
-  console.log("Server running on port " + serverPort);
-  // console.log("Server IP Address:" + serverIpAddress);
-  // console.log("Socket IO Address:" + socketIoServer);
-});
-
-var io = require("socket.io").listen(server, { log: false, origins: "*:*" });
-// var io = require('socket.io')(server);
-////////////////////////////////////////////////
-// EVENT HANDLERS
-////////////////////////////////////////////////
-
-io.sockets.on("connection", function(socket) {
+  // convenience function to log server messages on the client
   function log() {
-    var array = [">>> Message from server: "];
-    for (var i = 0; i < arguments.length; i++) {
-      array.push(arguments[i]);
+    const array = ['Message from server:']
+    array.push.apply(array, arguments)
+    socket.emit('log', array)
+  }
+
+  socket.on('message', function(message) {
+    log('Client said: ', message)
+    // for a real app, would be room-only (not broadcast)
+    socket.broadcast.emit('message', message)
+  })
+
+  socket.on('create or join', function(room) {
+    socket.broadcast.emit('created')
+    log('Received request to create or join room ' + room)
+    console.log('create or join')
+
+    const clientsInRoom = io.sockets.adapter.rooms[room]
+    const numClients = clientsInRoom ? Object.keys(clientsInRoom.sockets).length : 0
+    log('Room ' + room + ' now has ' + numClients + ' client(s)')
+
+    if (numClients === 0) {
+      socket.join(room)
+      log('Client ID ' + socket.id + ' created room ' + room)
+      socket.emit('created', room, socket.id)
+    } else if (numClients === 1) {
+      log('Client ID ' + socket.id + ' joined room ' + room)
+      io.sockets.in(room).emit('join', room)
+      socket.join(room)
+      socket.emit('joined', room, socket.id)
+      io.sockets.in(room).emit('ready')
+    } else {
+      // max two clients
+      socket.emit('full', room)
     }
-    socket.emit("log", array);
-  }
+  })
 
-  socket.on("message", function(message) {
-    log("Got message: ", message);
-    console.log("message: ", message);
-    socket.broadcast.to(socket.room).emit("message", message);
-  });
-
-  socket.on("create or join", function(message) {
-    var room = message.room;
-    socket.room = room;
-    var participantID = message.from;
-    configNameSpaceChannel(participantID);
-
-    io.of("/")
-      .in(room)
-      .clients(function(error, clients) {
-        var numClients = clients.length;
-
-        log("Room " + room + " has " + numClients + " client(s)");
-        log("Request to create or join room", room);
-
-        if (numClients == 0) {
-          console.log(participantID + " joined first. Creates room " + room);
-          socket.join(room);
-          socket.emit("created", room);
-        } else {
-          console.log(participantID + " joins room " + room);
-          io.sockets.in(room).emit("join", room);
-          socket.join(room);
-          socket.emit("joined", room);
+  socket.on('ipaddr', function() {
+    const ifaces = os.networkInterfaces()
+    for (const dev in ifaces) {
+      ifaces[dev].forEach(function(details) {
+        if (details.family === 'IPv4' && details.address !== '127.0.0.1') {
+          socket.emit('ipaddr', details.address)
         }
-      });
-  });
+      })
+    }
+  })
 
-  // Setup a communication channel (namespace) to communicate with a given participant (participantID)
-  function configNameSpaceChannel(room) {
-    var nsp = "/" + room;
-    var socketNamespace = io.of(nsp);
+  socket.on('bye', function() {
+    console.log('received bye')
+  })
+})
 
-    console.log("ConfigNameSpaceChannel:" + nsp);
-
-    socketNamespace.on("connection", function(socket) {
-      socket.on("message", function(message) {
-        // Send message to everyone BUT sender
-        socket.broadcast.emit("message", message);
-      });
-    });
-
-    return socketNamespace;
-  }
-});
+http.listen(7000)

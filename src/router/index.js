@@ -1,26 +1,26 @@
-import Vue from "vue";
-import VueRouter from "vue-router";
-import Home from "@/views/Home.vue";
-import Room from "@/views/Room.vue";
+import Vue from 'vue'
+import VueRouter from 'vue-router'
+import Home from '@/views/Home.vue'
+import Room from '@/views/Room.vue'
 
-Vue.use(VueRouter);
+Vue.use(VueRouter)
 
 const routes = [
   {
-    path: "/",
-    name: "Home",
+    path: '/',
+    name: 'Home',
     component: Home
   },
   {
-    path: "/:room",
+    path: '/:room',
     component: Room
   }
-];
+]
 
 const router = new VueRouter({
-  mode: "history",
+  mode: 'history',
   base: process.env.BASE_URL,
   routes
-});
+})
 
-export default router;
+export default router

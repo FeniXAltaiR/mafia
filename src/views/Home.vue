@@ -28,28 +28,26 @@
 export default {
   data: () => ({
     streams: [],
-    roomUrl: ""
+    roomUrl: ''
   }),
 
   mounted() {
-    this.init();
+    this.init()
   },
 
   methods: {
     init() {
-      this.generateRoomUrl();
+      this.generateRoomUrl()
     },
 
     shortUrl() {
-      return (
-        "000000" + ((Math.random() * Math.pow(36, 6)) << 0).toString(36)
-      ).slice(-6);
+      return ('000000' + ((Math.random() * Math.pow(36, 6)) << 0).toString(36)).slice(-6)
     },
 
     generateRoomUrl() {
-      const room = this.shortUrl();
-      this.roomUrl = "/" + room;
+      const room = this.shortUrl()
+      this.roomUrl = '/' + room
     }
   }
-};
+}
 </script>
