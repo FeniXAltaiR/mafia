@@ -35,37 +35,33 @@ export default {
       ]
     },
     room: null,
-    streams: []
+    streams: [],
+    peerConnections: []
   }),
 
   sockets: {
     connect() {
-      console.log('Your socket has connected')
+      console.log('CONNECT:', this.$socket.id)
     },
     test(msg) {
-      console.log('TEST is completed', msg)
+      console.log('TEST:', msg)
     },
     created({room, id}) {
-      console.log(`Created room: ${room}, id: ${id}`)
+      console.log(`CREATED: ${room}, id: ${id}`)
       this.isInitiator = true
     },
     full(room) {
-      console.log('Room ' + room + ' is full')
-    },
-    join({room, id}) {
-      console.log(`Another peer made a request to join room ${room} with id ${id}`)
-      console.log('This peer is the initiator of room ' + room + '!')
-      this.isChannelReady = true
+      console.log('FULL', room)
     },
     joined({room, id}) {
-      console.log(`joined room: ${room}, id: ${id}`)
+      console.log(`JOINED: room ${room}, id: ${id}`)
       this.isChannelReady = true
     },
     log(array) {
-      console.log.apply(console, array)
+      console.log.apply(console, ['LOG:', ...array])
     },
     message(message) {
-      console.log('Client received message:', message)
+      console.log('MESSAGE:', message)
       if (message === 'got user media') {
         this.maybeStart()
       } else if (message.type === 'offer') {
@@ -105,7 +101,6 @@ export default {
 
       if (this.room !== '') {
         this.$socket.emit('create or join', this.room)
-        console.log('Attempted to create or join room', this.room)
       }
 
       const constraints = {
@@ -120,27 +115,22 @@ export default {
           alert('getUserMedia() error: ' + e.name)
         })
 
-      console.log('Getting user media with constraints', constraints)
-
-      if (location.hostname !== 'localhost') {
-        this.requestTurn(
-          'https://computeengineondemand.appspot.com/turn?username=41784574&key=4080218913'
-        )
-      }
+      // if (location.hostname !== 'localhost') {
+      //   this.requestTurn(
+      //     'https://computeengineondemand.appspot.com/turn?username=41784574&key=4080218913'
+      //   )
+      // }
     },
     sendMessage(message) {
       console.log('Client sending message: ', message)
       this.$socket.emit('message', message)
     },
     gotStream(stream) {
-      // const localVideo = document.querySelector('#localVideo')
       console.log('Adding local stream.')
       this.localStream = stream
-      // localVideo.srcObject = stream
       this.streams.push({
         srcObject: stream
       })
-      // console.log(this.streams)
       this.sendMessage('got user media')
       if (this.isInitiator) {
         this.maybeStart()
@@ -236,10 +226,7 @@ export default {
       }
     },
     handleRemoteStreamAdded(event) {
-      // const remoteVideo = document.querySelector('#remoteVideo')
       console.log('Remote stream added.')
-      // this.remoteStream = event.stream
-      // remoteVideo.srcObject = this.remoteStream
       this.streams.push({
         srcObject: event.stream
       })
