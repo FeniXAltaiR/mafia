@@ -3,8 +3,16 @@
     <h1>Realtime communication with WebRTC</h1>
 
     <div id="videos">
-      <video id="localVideo" autoplay muted playsinline></video>
-      <video id="remoteVideo" autoplay playsinline></video>
+      <video
+        v-for="(stream, index) in streams"
+        :key="index"
+        :srcObject.prop="stream.srcObject"
+        muted
+        autoplay
+        controls
+      ></video>
+      <!-- <video id="localVideo" autoplay muted playsinline controls></video> -->
+      <!-- <video id="remoteVideo" autoplay muted playsinline controls></video> -->
     </div>
   </div>
 </template>
@@ -26,7 +34,8 @@ export default {
         }
       ]
     },
-    room: 'foo'
+    room: null,
+    streams: []
   }),
 
   sockets: {
@@ -36,20 +45,20 @@ export default {
     test(msg) {
       console.log('TEST is completed', msg)
     },
-    created(room) {
-      console.log('Created room ' + room)
+    created({room, id}) {
+      console.log(`Created room: ${room}, id: ${id}`)
       this.isInitiator = true
     },
     full(room) {
       console.log('Room ' + room + ' is full')
     },
-    join(room) {
-      console.log('Another peer made a request to join room ' + room)
+    join({room, id}) {
+      console.log(`Another peer made a request to join room ${room} with id ${id}`)
       console.log('This peer is the initiator of room ' + room + '!')
       this.isChannelReady = true
     },
-    joined(room) {
-      console.log('joined: ' + room)
+    joined({room, id}) {
+      console.log(`joined room: ${room}, id: ${id}`)
       this.isChannelReady = true
     },
     log(array) {
@@ -89,25 +98,27 @@ export default {
   methods: {
     init() {
       this.$socket.emit('test', 'test')
+      const {room} = this.$route.params
+      if (room) {
+        this.room = room
+      }
 
       if (this.room !== '') {
         this.$socket.emit('create or join', this.room)
         console.log('Attempted to create or join room', this.room)
       }
 
+      const constraints = {
+        video: true,
+        audio: true
+      }
+
       navigator.mediaDevices
-        .getUserMedia({
-          audio: false,
-          video: true
-        })
+        .getUserMedia(constraints)
         .then(this.gotStream)
         .catch(function(e) {
           alert('getUserMedia() error: ' + e.name)
         })
-
-      const constraints = {
-        video: true
-      }
 
       console.log('Getting user media with constraints', constraints)
 
@@ -122,10 +133,14 @@ export default {
       this.$socket.emit('message', message)
     },
     gotStream(stream) {
-      const localVideo = document.querySelector('#localVideo')
+      // const localVideo = document.querySelector('#localVideo')
       console.log('Adding local stream.')
       this.localStream = stream
-      localVideo.srcObject = stream
+      // localVideo.srcObject = stream
+      this.streams.push({
+        srcObject: stream
+      })
+      // console.log(this.streams)
       this.sendMessage('got user media')
       if (this.isInitiator) {
         this.maybeStart()
@@ -133,7 +148,10 @@ export default {
     },
     maybeStart() {
       console.log('>>>>>>> maybeStart() ', this.isStarted, this.localStream, this.isChannelReady)
-      if (!this.isStarted && typeof this.localStream !== 'undefined' && this.isChannelReady) {
+      if (
+        (!this.isStarted && typeof this.localStream !== 'undefined' && this.isChannelReady) ||
+        this.streams.length >= 2
+      ) {
         console.log('>>>>>> creating peer connection')
         this.createPeerConnection()
         this.pc.addStream(this.localStream)
@@ -218,10 +236,13 @@ export default {
       }
     },
     handleRemoteStreamAdded(event) {
-      const remoteVideo = document.querySelector('#remoteVideo')
+      // const remoteVideo = document.querySelector('#remoteVideo')
       console.log('Remote stream added.')
-      this.remoteStream = event.stream
-      remoteVideo.srcObject = this.remoteStream
+      // this.remoteStream = event.stream
+      // remoteVideo.srcObject = this.remoteStream
+      this.streams.push({
+        srcObject: event.stream
+      })
     },
     handleRemoteStreamRemoved(event) {
       console.log('Remote stream removed. Event: ', event)

@@ -32,7 +32,7 @@ io.on('connect', function(socket) {
   })
 
   socket.on('create or join', function(room) {
-    socket.broadcast.emit('created')
+    // socket.broadcast.emit('created')
     log('Received request to create or join room ' + room)
     console.log('create or join')
 
@@ -43,13 +43,22 @@ io.on('connect', function(socket) {
     if (numClients === 0) {
       socket.join(room)
       log('Client ID ' + socket.id + ' created room ' + room)
-      socket.emit('created', room, socket.id)
-    } else if (numClients === 1) {
+      socket.emit('created', {
+        room,
+        id: socket.id
+      })
+    } else if (numClients <= 12) {
       log('Client ID ' + socket.id + ' joined room ' + room)
-      io.sockets.in(room).emit('join', room)
+      io.sockets.in(room).emit('join', {
+        room,
+        id: socket.id
+      })
       socket.join(room)
-      socket.emit('joined', room, socket.id)
-      io.sockets.in(room).emit('ready')
+      socket.emit('joined', {
+        room,
+        id: socket.id
+      })
+      // io.sockets.in(room).emit('ready')
     } else {
       // max two clients
       socket.emit('full', room)
