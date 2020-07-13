@@ -1,7 +1,12 @@
 // const os = require('os')
 const app = require('express')()
-const http = require('http').createServer(app)
-const io = require('socket.io')(http)
+// const fs = require('fs')
+// const serverConfig = {
+//   key: fs.readFileSync('./security/key.pem'),
+//   cert: fs.readFileSync('./security/cert.pem'),
+// }
+const https = require('http').createServer(app)
+const io = require('socket.io')(https)
 
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -17,45 +22,10 @@ io.on('connect', function(socket) {
     socket.emit('test', socket.id)
   })
 
-  // convenience function to log server messages on the client
-  function log() {
-    const array = ['Message from server:']
-    array.push.apply(array, arguments)
-    socket.emit('log', array)
-  }
-
   socket.on('message', function(message) {
-    log('Client said: ', message)
+    // log('Client said: ', message)
     // for a real app, would be room-only (not broadcast)
     socket.broadcast.emit('message', message)
-  })
-
-  socket.on('create or join', function(room) {
-    log('Received request to create or join room ' + room)
-
-    const clientsInRoom = io.sockets.adapter.rooms[room]
-    const numClients = clientsInRoom ? Object.keys(clientsInRoom.sockets).length : 0
-    log('Room ' + room + ' now has ' + numClients + ' client(s)')
-
-    if (numClients === 0) {
-      socket.join(room)
-      log('Client ID ' + socket.id + ' created room ' + room)
-      socket.emit('created', {
-        room,
-        id: socket.id
-      })
-    } else if (numClients <= 12) {
-      socket.join(room)
-      log('Client ID ' + socket.id + ' joined room ' + room)
-      io.in(room).emit('joined', {
-        room,
-        id: socket.id
-      })
-      // io.sockets.in(room).emit('ready')
-    } else {
-      // max twelve clients
-      socket.emit('full', room)
-    }
   })
 
   // socket.on('ipaddr', function() {
@@ -74,4 +44,4 @@ io.on('connect', function(socket) {
   })
 })
 
-http.listen(7000)
+https.listen(7000)
