@@ -73,7 +73,7 @@ export default {
       } else if (message.displayName && message.dest == this.$socket.id) {
         // initiate call if we are the newcomer peer
         this.setUpPeer(peerUuid, message.displayName, true)
-      } else if (message.sdp) {
+      } else if (message.sdp && message.dest === this.$socket.id) {
         this.peerConnections[peerUuid].pc
           .setRemoteDescription(new RTCSessionDescription(message.sdp))
           .then(() => {
@@ -123,7 +123,7 @@ export default {
         .getDisplayMedia(constraints)
         .then(this.gotStream)
         .catch(function(e) {
-          alert('getUserMedia() error: ' + e.name)
+          console.log('getUserMedia() error: ' + e.name)
         })
 
       // if (location.hostname !== 'localhost') {
@@ -208,14 +208,15 @@ export default {
       }
     },
     createdDescription(description, uuid) {
-      console.log('got description')
+      console.log('got description', uuid)
 
       this.peerConnections[uuid].pc
         .setLocalDescription(description)
         .then(() => {
           this.$socket.emit('message', {
             sdp: this.peerConnections[uuid].pc.localDescription,
-            uuid: this.$socket.id
+            uuid: this.$socket.id,
+            dest: uuid
           })
         })
         .catch(this.errorHandler)
@@ -236,8 +237,6 @@ export default {
       }
       this.peerConnections[peerUuid].pc.onicecandidate = event =>
         this.gotIceCandidate(event, peerUuid)
-      // this.peerConnections[peerUuid].pc.ontrack = event =>
-      //   this.handleRemoteStreamAdded(event, peerUuid)
       this.peerConnections[peerUuid].pc.onaddstream = event =>
         this.handleRemoteStreamAdded(event, peerUuid)
       this.peerConnections[peerUuid].pc.oniceconnectionstatechange = event =>
