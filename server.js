@@ -17,15 +17,40 @@ app.use((req, res, next) => {
   next()
 })
 
-io.on('connect', function(socket) {
+io.on('connect', socket => {
   socket.on('test', () => {
     socket.emit('test', socket.id)
   })
 
-  socket.on('message', function(message) {
+  socket.on('message', message => {
     // log('Client said: ', message)
     // for a real app, would be room-only (not broadcast)
-    socket.broadcast.emit('message', message)
+    socket.to(message.room).emit('message', message)
+  })
+
+  socket.on('join', message => {
+    const {room} = message
+
+    socket.join(room)
+    socket.to(room).emit('join', message)
+  })
+
+  socket.on('createOffer', ({uuid, dest, displayName}) => {
+    socket.to(dest).emit('createOffer', {
+      displayName,
+      uuid
+    })
+  })
+
+  socket.on('description', ({uuid, dest, sdp}) => {
+    socket.to(dest).emit('description', {
+      sdp,
+      uuid
+    })
+  })
+
+  socket.on('iceCandidate', message => {
+    socket.to(message.room).emit('iceCandidate', message)
   })
 
   // socket.on('ipaddr', function() {
