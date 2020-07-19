@@ -30,9 +30,14 @@ io.on('connect', socket => {
 
   socket.on('join', message => {
     const {room} = message
+    const {sockets = {}} = io.sockets.adapter.rooms[room] ?? {}
 
-    socket.join(room)
-    socket.to(room).emit('join', message)
+    if (Object.keys(sockets).length >= 12) {
+      socket.emit('fullRoom')
+    } else {
+      socket.join(room)
+      socket.to(room).emit('join', message)
+    }
   })
 
   socket.on('createOffer', ({uuid, dest, displayName}) => {

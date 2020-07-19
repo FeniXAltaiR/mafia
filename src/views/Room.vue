@@ -50,6 +50,10 @@ export default {
     test(msg) {
       console.log('TEST:', msg)
     },
+    fullRoom() {
+      alert('ROOM IS FOOL')
+      this.$router.push('/')
+    },
     join({uuid: peerUuid, displayName}) {
       this.setUpPeer(peerUuid, displayName)
       this.$socket.emit('createOffer', {
