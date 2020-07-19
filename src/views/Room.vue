@@ -1,20 +1,16 @@
 <template>
-  <div>
-    <h1>Realtime communication with WebRTC</h1>
-
-    <div id="videos">
-      <video
-        v-for="(stream, index) in streams"
-        :key="index"
-        :srcObject.prop="stream.srcObject"
-        muted
-        autoplay
-        controls
-        style="width: 480px"
-      ></video>
-      <!-- <video id="localVideo" autoplay muted playsinline controls></video> -->
-      <!-- <video id="remoteVideo" autoplay muted playsinline controls></video> -->
-    </div>
+  <div class="d-flex fill-height">
+    <v-row class="fill-height">
+      <v-col md="3" v-for="(stream, index) in streams" :key="index">
+        <video
+          :srcObject.prop="stream.srcObject"
+          muted
+          autoplay
+          controls
+          style="width: inherit;"
+        ></video>
+      </v-col>
+    </v-row>
   </div>
 </template>
 
