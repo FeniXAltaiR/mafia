@@ -1,20 +1,37 @@
 <template>
-  <div class="d-flex fill-height">
-    <v-row class="fill-height">
-      <v-col md="3" v-for="(stream, index) in streams" :key="index">
+  <div>
+    <v-row>
+      <v-col class="text-center">
+        <v-row class="justify-center align-center">
+          <span class="mr-2 white--text">{{ time }}</span>
+          <v-btn icon small @click="startGame" :disabled="streams.length < 2" class="white--text">
+            <v-icon>mdi-play</v-icon>
+          </v-btn>
+        </v-row>
+      </v-col>
+    </v-row>
+    <v-row class="align-center flex-wrap">
+      <v-col md="3" sm="6" v-for="(stream, index) in streams" :key="index">
         <video
           :srcObject.prop="stream.srcObject"
           muted
           autoplay
           controls
-          style="width: inherit;"
+          style="height: calc((100vh - 120px - 16px) / 3); max-width: 100%; border-radius: 20px; border: 4px solid grey"
         ></video>
+        <div>
+          <v-btn @click="toggleVideo(stream)">
+            <v-icon>mdi-pause</v-icon>
+          </v-btn>
+        </div>
       </v-col>
     </v-row>
   </div>
 </template>
 
 <script>
+import moment from 'moment'
+
 export default {
   data: () => ({
     turnReady: null,
@@ -36,7 +53,10 @@ export default {
     },
     room: null,
     streams: [],
-    peerConnections: []
+    peerConnections: [],
+    time: null,
+    timer: null,
+    gameSteps: []
   }),
 
   sockets: {
@@ -86,6 +106,18 @@ export default {
         .addIceCandidate(new RTCIceCandidate(ice))
         .catch(this.errorHandler)
     },
+    toggleVideo(id) {
+      console.log(id)
+      const {srcObject: existStream} = this.streams.find(stream => stream.id === id) || {}
+
+      if (existStream) {
+        const videoTracks = existStream.getVideoTracks()
+
+        videoTracks.forEach(track => {
+          track.enabled = !track.enabled
+        })
+      }
+    },
     message(message) {
       console.log('MESSAGE:', message)
     }
@@ -101,6 +133,8 @@ export default {
       if (room) {
         this.room = room
       }
+
+      this.gameSteps = [this.alertA, this.alertB, this.alertA]
 
       const constraints = {
         video: true,
@@ -126,7 +160,8 @@ export default {
       this.localStream = stream
       this.streams.push({
         srcObject: stream,
-        id: this.$socket.id
+        id: this.$socket.id,
+        room: this.room
       })
       this.$socket.emit('join', {
         displayName: this.$socket.id,
@@ -167,7 +202,8 @@ export default {
       console.log('Remote stream added.', peerUuid)
       this.streams.push({
         srcObject: event.stream,
-        id: peerUuid
+        id: peerUuid,
+        room: this.room
       })
     },
     gotIceCandidate(event) {
@@ -219,6 +255,48 @@ export default {
         xhr.open('GET', turnURL, true)
         xhr.send()
       }
+    },
+
+    toggleVideo({id, room}) {
+      // const videoTracks = stream.getVideoTracks()
+
+      // videoTracks.forEach(track => {
+      //   track.enabled = !track.enabled
+      // })
+      this.$socket.emit('toggleVideo', {id, room})
+    },
+    startGame() {
+      this.nextStep(this.gameSteps[0], 30000)
+    },
+    alertA() {
+      alert('A')
+    },
+    alertB() {
+      alert('B')
+    },
+    endGame() {
+      clearInterval(this.timer)
+      alert('Game is over')
+    },
+    shouldEndGame() {
+      return this.gameSteps.length === 0
+    },
+    nextStep(f, duration = 15000) {
+      this.gameSteps.shift()
+      this.timer = setInterval(() => {
+        duration -= 1000
+        this.time = moment(duration).format('mm:ss')
+
+        if (duration <= 0) {
+          f()
+          clearInterval(this.timer)
+          if (this.shouldEndGame()) {
+            this.endGame()
+          } else {
+            this.nextStep(this.gameSteps[0])
+          }
+        }
+      }, 1000)
     }
   }
 }

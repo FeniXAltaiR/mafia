@@ -58,6 +58,13 @@ io.on('connect', socket => {
     socket.to(message.room).emit('iceCandidate', message)
   })
 
+  socket.on('toggleVideo', ({id, room}) => {
+    console.log(room)
+    io.in(room).emit('toggleVideo', id)
+    // socket.emit('toggleVideo', id)
+    // io.emit('toggleVideo', id)
+  })
+
   // socket.on('ipaddr', function() {
   //   const ifaces = os.networkInterfaces()
   //   for (const dev in ifaces) {
