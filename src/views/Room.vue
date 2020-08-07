@@ -4,7 +4,22 @@
       <v-col class="text-center">
         <v-row class="justify-center align-center">
           <span class="mr-2 white--text">{{ time }}</span>
-          <v-btn icon small @click="startGame" :disabled="streams.length < 2" class="white--text">
+          <v-btn
+            v-if="gameIsStarted && isInitiator"
+            icon
+            small
+            @click="pauseGame"
+            class="white--text"
+          >
+            <v-icon>mdi-{{ isPause ? 'play' : 'pause' }}</v-icon>
+          </v-btn>
+          <v-btn
+            v-else-if="!gameIsStarted && isInitiator"
+            icon
+            small
+            @click="startGame"
+            class="white--text"
+          >
             <v-icon>mdi-play</v-icon>
           </v-btn>
         </v-row>
@@ -17,7 +32,7 @@
           muted
           autoplay
           controls
-          style="height: calc((100vh - 120px - 16px) / 3); max-width: 100%; border-radius: 20px; border: 4px solid grey"
+          style="max-height: calc((100vh - 120px - 16px) / 3); max-width: 100%; border-radius: 8px; border: 2px solid grey"
         ></video>
         <div>
           <v-btn @click="toggleVideo(stream)">
@@ -35,12 +50,7 @@ import moment from 'moment'
 export default {
   data: () => ({
     turnReady: null,
-    isChannelReady: false,
-    isInitiator: false,
-    isStarted: false,
     localStream: null,
-    pc: null,
-    remoteStream: null,
     pcConfig: {
       iceServers: [
         {
@@ -54,8 +64,11 @@ export default {
     room: null,
     streams: [],
     peerConnections: [],
-    time: null,
+    time: '00:00',
     timer: null,
+    isPause: false,
+    isInitiator: false,
+    gameIsStarted: false,
     gameSteps: []
   }),
 
@@ -63,8 +76,18 @@ export default {
     connect() {
       console.log('CONNECT:', this.$socket.id)
     },
-    test(msg) {
-      console.log('TEST:', msg)
+    isInitiator({id, isInitiator = false}) {
+      this.isInitiator = isInitiator
+      console.log('TEST:', id, isInitiator)
+    },
+    time({time}) {
+      this.time = time
+    },
+    startGame() {
+      this.gameIsStarted = true
+    },
+    endGame() {
+      this.gameIsStarted = false
     },
     fullRoom() {
       alert('ROOM IS FOOL')
@@ -161,6 +184,9 @@ export default {
       this.streams.push({
         srcObject: stream,
         id: this.$socket.id,
+        room: this.room
+      })
+      this.$socket.emit('isInitiator', {
         room: this.room
       })
       this.$socket.emit('join', {
@@ -266,7 +292,18 @@ export default {
       this.$socket.emit('toggleVideo', {id, room})
     },
     startGame() {
+      this.$socket.emit('startGame', {room: this.room})
       this.nextStep(this.gameSteps[0], 30000)
+      this.gameIsStarted = true
+    },
+    pauseGame() {
+      this.isPause = !this.isPause
+    },
+    endGame() {
+      this.$socket.emit('endGame', {room: this.room})
+      clearInterval(this.timer)
+      this.gameIsStarted = false
+      alert('Game is over')
     },
     alertA() {
       alert('A')
@@ -274,26 +311,28 @@ export default {
     alertB() {
       alert('B')
     },
-    endGame() {
-      clearInterval(this.timer)
-      alert('Game is over')
-    },
     shouldEndGame() {
       return this.gameSteps.length === 0
     },
     nextStep(f, duration = 15000) {
       this.gameSteps.shift()
       this.timer = setInterval(() => {
-        duration -= 1000
-        this.time = moment(duration).format('mm:ss')
+        if (!this.isPause) {
+          duration -= 1000
+          this.time = moment(duration).format('mm:ss')
+          this.$socket.emit('time', {
+            time: this.time,
+            room: this.room
+          })
 
-        if (duration <= 0) {
-          f()
-          clearInterval(this.timer)
-          if (this.shouldEndGame()) {
-            this.endGame()
-          } else {
-            this.nextStep(this.gameSteps[0])
+          if (duration <= 0) {
+            f()
+            clearInterval(this.timer)
+            if (this.shouldEndGame()) {
+              this.endGame()
+            } else {
+              this.nextStep(this.gameSteps[0])
+            }
           }
         }
       }, 1000)

@@ -18,8 +18,14 @@ app.use((req, res, next) => {
 })
 
 io.on('connect', socket => {
-  socket.on('test', () => {
-    socket.emit('test', socket.id)
+  socket.on('isInitiator', ({room}) => {
+    const {sockets = {}} = io.sockets.adapter.rooms[room] ?? {}
+    const players = Object.keys(sockets).length
+
+    socket.emit('isInitiator', {
+      id: socket.id,
+      isInitiator: players === 0
+    })
   })
 
   socket.on('message', message => {
@@ -31,8 +37,9 @@ io.on('connect', socket => {
   socket.on('join', message => {
     const {room} = message
     const {sockets = {}} = io.sockets.adapter.rooms[room] ?? {}
+    const players = Object.keys(sockets).length
 
-    if (Object.keys(sockets).length >= 12) {
+    if (players >= 12) {
       socket.emit('fullRoom')
     } else {
       socket.join(room)
@@ -75,6 +82,20 @@ io.on('connect', socket => {
   //     })
   //   }
   // })
+
+  socket.on('startGame', ({room}) => {
+    socket.to(room).emit('startGame')
+  })
+
+  socket.on('endGame', ({room}) => {
+    socket.to(room).emit('endGame')
+  })
+
+  socket.on('time', ({room, time}) => {
+    socket.to(room).emit('time', {
+      time
+    })
+  })
 
   socket.on('bye', function() {
     console.log('received bye')
