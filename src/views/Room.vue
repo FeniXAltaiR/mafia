@@ -3,6 +3,7 @@
     <v-row>
       <v-col class="text-center">
         <v-row class="justify-center align-center">
+          <span class="mr-2 white--text">{{ gameInfo.id }}</span>
           <span class="mr-2 white--text">{{ time }}</span>
           <v-btn
             v-if="gameIsStarted && isInitiator"
@@ -21,6 +22,15 @@
             class="white--text"
           >
             <v-icon>mdi-play</v-icon>
+          </v-btn>
+          <v-btn
+            v-if="gameIsStarted && isInitiator"
+            icon
+            small
+            @click="addDuration"
+            class="white--text"
+          >
+            <v-icon>mdi-plus</v-icon>
           </v-btn>
         </v-row>
       </v-col>
@@ -69,7 +79,9 @@ export default {
     isPause: false,
     isInitiator: false,
     gameIsStarted: false,
-    gameSteps: []
+    duration: 0,
+    gameSteps: [],
+    gameInfo: {}
   }),
   computed: {
     getPlayerStreams() {
@@ -168,8 +180,6 @@ export default {
       if (room) {
         this.room = room
       }
-
-      this.gameSteps = [this.alertA, this.alertB, this.alertA]
 
       const constraints = {
         video: true,
@@ -299,9 +309,13 @@ export default {
       console.log(id, room)
       this.$socket.emit('toggleVideo', {id, room})
     },
+    addDuration(e, duration = 10000) {
+      this.duration += duration
+    },
     startGame() {
       this.$socket.emit('startGame', {room: this.room})
-      this.nextStep(this.gameSteps[0], 30000)
+      this.gameSteps = [...this.alertA(7000), this.alertB, ...this.alertA(5000)]
+      this.nextStep(this.gameSteps[0], 1000)
       this.gameIsStarted = true
     },
     pauseGame() {
@@ -313,33 +327,53 @@ export default {
       this.gameIsStarted = false
       alert('Game is over')
     },
-    alertA() {
-      alert('A')
+    alertA(duration = 12000) {
+      const result = [
+        ...Object.values(this.peerConnections).map(player => () => {
+          this.duration = duration
+          this.gameInfo = {
+            id: player.id
+          }
+          alert(player.id)
+        }),
+        () => {
+          this.duration = duration
+          this.gameInfo = {
+            id: null
+          }
+          alert('Alert A has ended')
+        }
+      ]
+
+      return result
     },
-    alertB() {
+    alertB(duration = 5000) {
+      this.duration = duration
       alert('B')
     },
     shouldEndGame() {
       return this.gameSteps.length === 0
     },
-    nextStep(f, duration = 15000) {
+    nextStep(f, duration = 5000) {
+      this.duration = duration
       this.gameSteps.shift()
       this.timer = setInterval(() => {
         if (!this.isPause) {
-          duration -= 1000
-          this.time = moment(duration).format('mm:ss')
+          this.duration -= 1000
+          this.time = moment(this.duration).format('mm:ss')
           this.$socket.emit('time', {
             time: this.time,
             room: this.room
           })
 
-          if (duration <= 0) {
+          if (this.duration <= 0) {
+            this.duration = null
             f()
             clearInterval(this.timer)
             if (this.shouldEndGame()) {
               this.endGame()
             } else {
-              this.nextStep(this.gameSteps[0])
+              this.nextStep(this.gameSteps[0], this.duration)
             }
           }
         }
