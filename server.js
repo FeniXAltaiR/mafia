@@ -110,6 +110,10 @@ io.on('connect', socket => {
     io.to(toId).emit('getRole', {uuid: fromId, role})
   })
 
+  socket.on('setGameInfo', info => {
+    socket.to(info.room).emit('setGameInfo', info)
+  })
+
   socket.on('endGame', ({room}) => {
     socket.to(room).emit('endGame')
   })

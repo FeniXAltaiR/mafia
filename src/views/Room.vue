@@ -113,6 +113,9 @@ export default {
     getRole({uuid, role}) {
       this.$set(this.findPc(uuid), 'role', role)
     },
+    setGameInfo(info) {
+      this.gameInfo = info
+    },
     startGame() {
       this.gameIsStarted = true
     },
@@ -321,7 +324,7 @@ export default {
     },
     startGame() {
       this.$socket.emit('startGame', {room: this.room})
-      this.gameSteps = [...this.alertA(7000), this.rendezvous, ...this.alertA(5000)]
+      this.gameSteps = [...this.randezvous(7000), ...this.gameNight(), this.meeting]
       this.nextStep(this.gameSteps[0], 1000)
       this.gameIsStarted = true
     },
@@ -336,34 +339,37 @@ export default {
     },
     setGameInfo(info) {
       this.gameInfo = info
+      this.$socket.emit('setGameInfo', {
+        ...info,
+        room: this.room
+      })
     },
-    alertA(duration = 12000) {
+    randezvous(duration = 12000) {
       const result = [
         ...this.peerConnections.map(player => () => {
           this.duration = duration
-          this.setGameInfo({text: player.id})
-          alert(player.id)
+          this.setGameInfo({text: player.id, type: 'randezvous'})
         }),
         () => {
-          this.duration = duration
-          this.setGameInfo({text: null})
-          alert('Alert A has ended')
+          this.duration = 5000
+          this.setGameInfo({text: 'night', type: 'mafia'})
         }
       ]
 
       return result
     },
-    rendezvous(duration = 10000) {
+    gameNight() {
+      return []
+    },
+    meeting(duration = 10000) {
       this.duration = duration
-      this.setGameInfo({text: 'randezvous'})
-      alert('rendezvous')
+      this.setGameInfo({text: 'meeting'})
     },
     shouldEndGame() {
       return this.gameSteps.length === 0
     },
     nextStep(f, duration = 5000) {
       this.duration = duration
-      this.gameSteps.shift()
       this.timer = setInterval(() => {
         if (!this.isPause) {
           this.duration -= 1000
@@ -375,11 +381,12 @@ export default {
 
           if (this.duration <= 0) {
             this.duration = null
-            f()
-            clearInterval(this.timer)
             if (this.shouldEndGame()) {
               this.endGame()
             } else {
+              f()
+              clearInterval(this.timer)
+              this.gameSteps.shift()
               this.nextStep(this.gameSteps[0], this.duration)
             }
           }
