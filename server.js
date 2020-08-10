@@ -89,7 +89,7 @@ io.on('connect', socket => {
   // })
 
   socket.on('startGame', ({room}) => {
-    const gameRoles = ['mafia', 'citizen', 'detective', 'doctor']
+    const gameRoles = ['mafia', 'boss', 'citizen', 'detective', 'doctor']
     const players = playersInRoom(room)
 
     players.forEach(uuid => {
@@ -112,6 +112,10 @@ io.on('connect', socket => {
 
   socket.on('setGameInfo', info => {
     socket.to(info.room).emit('setGameInfo', info)
+  })
+
+  socket.on('resetCanCheckRole', ({room}) => {
+    socket.to(room).emit('resetCanCheckRole')
   })
 
   socket.on('endGame', ({room}) => {

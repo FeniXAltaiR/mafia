@@ -48,7 +48,7 @@
             <v-btn icon class="white mr-2" @click="toggleVideo(player)">
               <v-icon>mdi-stop</v-icon>
             </v-btn>
-            <v-btn icon class="white mr-2" @click="checkRole(player)">
+            <v-btn v-if="canCheckRole(player)" icon class="white mr-2" @click="checkRole(player)">
               <v-icon>mdi-magnify</v-icon>
             </v-btn>
             <p>{{ player.role || 'undefined' }}</p>
@@ -82,6 +82,7 @@ export default {
     isPause: false,
     isInitiator: false,
     gameIsStarted: false,
+    canCheck: true,
     duration: 0,
     gameSteps: [],
     gameInfo: {}
@@ -115,6 +116,9 @@ export default {
     },
     setGameInfo(info) {
       this.gameInfo = info
+    },
+    resetCanCheckRole() {
+      this.canCheck = true
     },
     startGame() {
       this.gameIsStarted = true
@@ -316,15 +320,23 @@ export default {
       console.log(id, room)
       this.$socket.emit('toggleVideo', {id, room})
     },
+    canCheckRole({id}) {
+      return (
+        this.$socket.id !== id &&
+        this.findPc(this.$socket.id).role === this.gameInfo.type &&
+        this.canCheck
+      )
+    },
     checkRole({id, room}) {
       this.$socket.emit('checkRole', {fromId: this.$socket.id, toId: id, room})
+      this.canCheck = false
     },
     addDuration(e, duration = 10000) {
       this.duration += duration
     },
     startGame() {
       this.$socket.emit('startGame', {room: this.room})
-      this.gameSteps = [...this.randezvous(7000), ...this.gameNight(), this.meeting]
+      this.gameSteps = [...this.randezvous(5000), ...this.gameNight(), this.meeting]
       this.nextStep(this.gameSteps[0], 1000)
       this.gameIsStarted = true
     },
@@ -349,21 +361,36 @@ export default {
         ...this.peerConnections.map(player => () => {
           this.duration = duration
           this.setGameInfo({text: player.id, type: 'randezvous'})
-        }),
-        () => {
-          this.duration = 5000
-          this.setGameInfo({text: 'night', type: 'mafia'})
-        }
+        })
       ]
 
       return result
     },
-    gameNight() {
-      return []
+    gameNight(duration = 5000) {
+      return [
+        () => {
+          this.duration = duration
+          this.setGameInfo({text: 'night', type: 'mafia'})
+        },
+        () => {
+          this.duration = duration
+          this.setGameInfo({text: 'night', type: 'boss'})
+        },
+        () => {
+          this.duration = duration
+          this.setGameInfo({text: 'night', type: 'detective'})
+        },
+        () => {
+          this.duration = duration
+          this.setGameInfo({text: 'night', type: 'doctor'})
+        }
+      ]
     },
     meeting(duration = 10000) {
+      this.$socket.emit('resetCanCheckRole', {room: this.room})
+      this.canCheck = true
       this.duration = duration
-      this.setGameInfo({text: 'meeting'})
+      this.setGameInfo({text: 'meeting', type: 'meeting'})
     },
     shouldEndGame() {
       return this.gameSteps.length === 0
