@@ -3,7 +3,7 @@
     <v-row>
       <v-col class="text-center">
         <v-row class="justify-center align-center">
-          <span class="mr-2 white--text">{{ gameInfo.id }}</span>
+          <span class="mr-2 white--text">{{ gameInfo.text }}</span>
           <span class="mr-2 white--text">{{ time }}</span>
           <v-btn
             v-if="gameIsStarted && isInitiator"
@@ -76,7 +76,7 @@ export default {
       ]
     },
     room: null,
-    peerConnections: {},
+    peerConnections: [],
     time: '00:00',
     timer: null,
     isPause: false,
@@ -88,8 +88,7 @@ export default {
   }),
   computed: {
     getPlayerStreams() {
-      // console.log('GET_PLAYER_STREAMS', console.table(Object.values(this.peerConnections)))
-      return Object.values(this.peerConnections)
+      return this.peerConnections
     }
   },
 
@@ -108,11 +107,11 @@ export default {
       this.time = time
     },
     checkRole({fromId}) {
-      const {role, room = this.room} = this.peerConnections[this.$socket.id]
+      const {role, room = this.room} = this.findPc(this.$socket.id)
       this.$socket.emit('getRole', {fromId: this.$socket.id, toId: fromId, role, room})
     },
     getRole({uuid, role}) {
-      this.$set(this.peerConnections[uuid], 'role', role)
+      this.$set(this.findPc(uuid), 'role', role)
     },
     startGame() {
       this.gameIsStarted = true
@@ -135,20 +134,20 @@ export default {
     },
     createOffer({uuid: peerUuid, displayName}) {
       this.setUpPeer(peerUuid, displayName)
-      this.peerConnections[peerUuid].pc
-        .createOffer()
+      this.findPc(peerUuid)
+        .pc.createOffer()
         .then(description => this.createdDescription(description, peerUuid))
         .catch(this.errorHandler)
     },
     description({uuid: peerUuid, sdp}) {
       console.log('SDP_TYPE', sdp.type)
-      this.peerConnections[peerUuid].pc
-        .setRemoteDescription(new RTCSessionDescription(sdp))
+      this.findPc(peerUuid)
+        .pc.setRemoteDescription(new RTCSessionDescription(sdp))
         .then(() => {
           // Only create answers in response to offers
           if (sdp.type == 'offer') {
-            this.peerConnections[peerUuid].pc
-              .createAnswer()
+            this.findPc(peerUuid)
+              .pc.createAnswer()
               .then(description => this.createdDescription(description, peerUuid))
               .catch(this.errorHandler)
           }
@@ -156,12 +155,12 @@ export default {
         .catch(this.errorHandler)
     },
     iceCandidate({uuid: peerUuid, ice}) {
-      this.peerConnections[peerUuid].pc
-        .addIceCandidate(new RTCIceCandidate(ice))
+      this.findPc(peerUuid)
+        .pc.addIceCandidate(new RTCIceCandidate(ice))
         .catch(this.errorHandler)
     },
     toggleVideo(id) {
-      const {stream: existStream} = this.peerConnections[id]
+      const {stream: existStream} = this.findPc(id)
 
       if (existStream) {
         const videoTracks = existStream.getVideoTracks()
@@ -208,7 +207,7 @@ export default {
     },
     gotStream(stream) {
       console.log('Adding local stream.')
-      this.$set(this.peerConnections, this.$socket.id, {
+      this.peerConnections.push({
         displayName: this.$socket.id,
         stream,
         id: this.$socket.id,
@@ -226,29 +225,27 @@ export default {
     },
     setUpPeer(peerUuid, displayName) {
       console.log('SET UP PEER')
-      const {stream} = this.peerConnections[this.$socket.id]
-      this.peerConnections[peerUuid] = {
+      const {stream} = this.findPc(this.$socket.id)
+      this.peerConnections.push({
         displayName,
         pc: new RTCPeerConnection(this.pcConfig),
         id: peerUuid,
         room: this.room
-      }
-      this.peerConnections[peerUuid].pc.onicecandidate = event =>
-        this.gotIceCandidate(event, peerUuid)
-      this.peerConnections[peerUuid].pc.onaddstream = event =>
-        this.handleRemoteStreamAdded(event, peerUuid)
-      this.peerConnections[peerUuid].pc.oniceconnectionstatechange = event =>
-        this.checkPeerDisconnect(event, peerUuid)
-      this.peerConnections[peerUuid].pc.addStream(stream)
+      })
+      const existPc = this.findPc(peerUuid)
+      existPc.pc.onicecandidate = event => this.gotIceCandidate(event, peerUuid)
+      existPc.pc.onaddstream = event => this.handleRemoteStreamAdded(event, peerUuid)
+      existPc.pc.oniceconnectionstatechange = event => this.checkPeerDisconnect(event, peerUuid)
+      existPc.pc.addStream(stream)
     },
     createdDescription(description, uuid) {
       console.log('got description', uuid)
 
-      this.peerConnections[uuid].pc
-        .setLocalDescription(description)
+      this.findPc(uuid)
+        .pc.setLocalDescription(description)
         .then(() => {
           this.$socket.emit('description', {
-            sdp: this.peerConnections[uuid].pc.localDescription,
+            sdp: this.findPc(uuid).pc.localDescription,
             uuid: this.$socket.id,
             dest: uuid,
             room: this.room
@@ -258,8 +255,7 @@ export default {
     },
     handleRemoteStreamAdded(event, peerUuid) {
       console.log('Remote stream added.', peerUuid)
-      this.$set(this.peerConnections[peerUuid], 'stream', event.stream)
-      this.$forceUpdate()
+      this.$set(this.findPc(peerUuid), 'stream', event.stream)
     },
     gotIceCandidate(event) {
       if (event.candidate != null) {
@@ -272,11 +268,11 @@ export default {
       }
     },
     checkPeerDisconnect(event, peerUuid) {
-      const state = this.peerConnections[peerUuid].pc.iceConnectionState
+      const state = this.findPc(peerUuid).pc.iceConnectionState
       console.log(`connection with peer ${peerUuid} ${state}`)
       if (['failed', 'closed', 'disconnected'].includes(state)) {
         console.log('DELETE PEER', peerUuid)
-        this.$delete(this.peerConnections, peerUuid)
+        this.peerConnections = this.peerConnections.filter(pc => pc.id !== peerUuid)
       }
     },
     errorHandler(e) {
@@ -310,7 +306,9 @@ export default {
         xhr.send()
       }
     },
-
+    findPc(id) {
+      return this.peerConnections.find(pc => pc.id === id)
+    },
     toggleVideo({id, room}) {
       console.log(id, room)
       this.$socket.emit('toggleVideo', {id, room})
@@ -323,7 +321,7 @@ export default {
     },
     startGame() {
       this.$socket.emit('startGame', {room: this.room})
-      this.gameSteps = [...this.alertA(7000), this.alertB, ...this.alertA(5000)]
+      this.gameSteps = [...this.alertA(7000), this.rendezvous, ...this.alertA(5000)]
       this.nextStep(this.gameSteps[0], 1000)
       this.gameIsStarted = true
     },
@@ -336,29 +334,29 @@ export default {
       this.gameIsStarted = false
       alert('Game is over')
     },
+    setGameInfo(info) {
+      this.gameInfo = info
+    },
     alertA(duration = 12000) {
       const result = [
-        ...Object.values(this.peerConnections).map(player => () => {
+        ...this.peerConnections.map(player => () => {
           this.duration = duration
-          this.gameInfo = {
-            id: player.id
-          }
+          this.setGameInfo({text: player.id})
           alert(player.id)
         }),
         () => {
           this.duration = duration
-          this.gameInfo = {
-            id: null
-          }
+          this.setGameInfo({text: null})
           alert('Alert A has ended')
         }
       ]
 
       return result
     },
-    alertB(duration = 5000) {
+    rendezvous(duration = 10000) {
       this.duration = duration
-      alert('B')
+      this.setGameInfo({text: 'randezvous'})
+      alert('rendezvous')
     },
     shouldEndGame() {
       return this.gameSteps.length === 0
