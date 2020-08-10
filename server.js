@@ -17,14 +17,20 @@ app.use((req, res, next) => {
   next()
 })
 
+const playersInRoom = room => {
+  const {sockets = {}} = io.sockets.adapter.rooms[room] ?? {}
+  const players = Object.keys(sockets)
+
+  return players
+}
+
 io.on('connect', socket => {
   socket.on('isInitiator', ({room}) => {
-    const {sockets = {}} = io.sockets.adapter.rooms[room] ?? {}
-    const players = Object.keys(sockets).length
+    const players = playersInRoom(room)
 
     socket.emit('isInitiator', {
       id: socket.id,
-      isInitiator: players === 0
+      isInitiator: players.length === 0
     })
   })
 
@@ -36,14 +42,14 @@ io.on('connect', socket => {
 
   socket.on('join', message => {
     const {room} = message
-    const {sockets = {}} = io.sockets.adapter.rooms[room] ?? {}
-    const players = Object.keys(sockets).length
+    const players = playersInRoom(room)
 
-    if (players >= 12) {
+    if (players.length >= 12) {
       socket.emit('fullRoom')
     } else {
       socket.join(room)
       socket.to(room).emit('join', message)
+      // socket.emit('test', socket.rooms)
     }
   })
 
@@ -66,7 +72,6 @@ io.on('connect', socket => {
   })
 
   socket.on('toggleVideo', ({id, room}) => {
-    console.log(room)
     io.in(room).emit('toggleVideo', id)
     // socket.emit('toggleVideo', id)
     // io.emit('toggleVideo', id)
@@ -84,6 +89,16 @@ io.on('connect', socket => {
   // })
 
   socket.on('startGame', ({room}) => {
+    const gameRoles = ['mafia', 'citizen', 'detective', 'doctor']
+    const players = playersInRoom(room)
+
+    players.forEach(uuid => {
+      const role = gameRoles.pop() || 'citizen'
+      io.to(uuid).emit('getRole', {
+        uuid,
+        role
+      })
+    })
     socket.to(room).emit('startGame')
   })
 

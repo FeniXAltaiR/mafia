@@ -26,19 +26,21 @@
       </v-col>
     </v-row>
     <v-row class="align-center flex-wrap">
-      <v-col md="3" sm="6" v-for="(stream, index) in streams" :key="index">
-        <video
-          :srcObject.prop="stream.srcObject"
-          muted
-          autoplay
-          controls
-          style="max-height: calc((100vh - 120px - 16px) / 3); max-width: 100%; border-radius: 8px; border: 2px solid grey"
-        ></video>
-        <div>
-          <v-btn @click="toggleVideo(stream)">
-            <v-icon>mdi-pause</v-icon>
-          </v-btn>
-        </div>
+      <v-col md="3" sm="6" v-for="(player, id, index) in peerConnections" :key="index">
+        <template v-if="player.stream">
+          <video
+            :srcObject.prop="player.stream"
+            muted
+            autoplay
+            style="max-height: calc((100vh - 120px - 16px) / 3); max-width: 100%; border-radius: 8px; border: 2px solid grey"
+          ></video>
+          <div>
+            <v-btn @click="toggleVideo(player)">
+              <v-icon>mdi-pause</v-icon>
+            </v-btn>
+            <p>{{ player.role || 'undefined' }}</p>
+          </div>
+        </template>
       </v-col>
     </v-row>
   </div>
@@ -50,7 +52,6 @@ import moment from 'moment'
 export default {
   data: () => ({
     turnReady: null,
-    localStream: null,
     pcConfig: {
       iceServers: [
         {
@@ -62,8 +63,7 @@ export default {
       ]
     },
     room: null,
-    streams: [],
-    peerConnections: [],
+    peerConnections: {},
     time: '00:00',
     timer: null,
     isPause: false,
@@ -71,17 +71,30 @@ export default {
     gameIsStarted: false,
     gameSteps: []
   }),
+  computed: {
+    getPlayerStreams() {
+      // console.log('GET_PLAYER_STREAMS', console.table(Object.values(this.peerConnections)))
+      console.log('GET_PLAYER_STREAMS', Object.values(this.peerConnections))
+      return Object.values(this.peerConnections)
+    }
+  },
 
   sockets: {
     connect() {
       console.log('CONNECT:', this.$socket.id)
     },
-    isInitiator({id, isInitiator = false}) {
+    test(msg) {
+      console.dir(msg)
+    },
+    isInitiator({isInitiator = false}) {
       this.isInitiator = isInitiator
-      console.log('TEST:', id, isInitiator)
+      // console.log('TEST:', id, isInitiator)
     },
     time({time}) {
       this.time = time
+    },
+    getRole({uuid, role}) {
+      this.peerConnections[uuid].role = role
     },
     startGame() {
       this.gameIsStarted = true
@@ -130,8 +143,7 @@ export default {
         .catch(this.errorHandler)
     },
     toggleVideo(id) {
-      console.log(id)
-      const {srcObject: existStream} = this.streams.find(stream => stream.id === id) || {}
+      const {stream: existStream} = this.peerConnections[id]
 
       if (existStream) {
         const videoTracks = existStream.getVideoTracks()
@@ -180,9 +192,9 @@ export default {
     },
     gotStream(stream) {
       console.log('Adding local stream.')
-      this.localStream = stream
-      this.streams.push({
-        srcObject: stream,
+      this.$set(this.peerConnections, this.$socket.id, {
+        displayName: this.$socket.id,
+        stream,
         id: this.$socket.id,
         room: this.room
       })
@@ -194,12 +206,16 @@ export default {
         uuid: this.$socket.id,
         room: this.room
       })
+      // this.$socket.emit('test')
     },
     setUpPeer(peerUuid, displayName) {
       console.log('SET UP PEER')
+      const {stream} = this.peerConnections[this.$socket.id]
       this.peerConnections[peerUuid] = {
         displayName,
-        pc: new RTCPeerConnection(this.pcConfig)
+        pc: new RTCPeerConnection(this.pcConfig),
+        id: peerUuid,
+        room: this.room
       }
       this.peerConnections[peerUuid].pc.onicecandidate = event =>
         this.gotIceCandidate(event, peerUuid)
@@ -207,7 +223,7 @@ export default {
         this.handleRemoteStreamAdded(event, peerUuid)
       this.peerConnections[peerUuid].pc.oniceconnectionstatechange = event =>
         this.checkPeerDisconnect(event, peerUuid)
-      this.peerConnections[peerUuid].pc.addStream(this.localStream)
+      this.peerConnections[peerUuid].pc.addStream(stream)
     },
     createdDescription(description, uuid) {
       console.log('got description', uuid)
@@ -226,11 +242,8 @@ export default {
     },
     handleRemoteStreamAdded(event, peerUuid) {
       console.log('Remote stream added.', peerUuid)
-      this.streams.push({
-        srcObject: event.stream,
-        id: peerUuid,
-        room: this.room
-      })
+      this.$set(this.peerConnections[peerUuid], 'stream', event.stream)
+      this.$forceUpdate()
     },
     gotIceCandidate(event) {
       if (event.candidate != null) {
@@ -247,8 +260,7 @@ export default {
       console.log(`connection with peer ${peerUuid} ${state}`)
       if (['failed', 'closed', 'disconnected'].includes(state)) {
         console.log('DELETE PEER', peerUuid)
-        delete this.peerConnections[peerUuid]
-        this.streams = this.streams.filter(stream => stream.id !== peerUuid)
+        this.$delete(this.peerConnections, peerUuid)
       }
     },
     errorHandler(e) {
@@ -284,11 +296,7 @@ export default {
     },
 
     toggleVideo({id, room}) {
-      // const videoTracks = stream.getVideoTracks()
-
-      // videoTracks.forEach(track => {
-      //   track.enabled = !track.enabled
-      // })
+      console.log(id, room)
       this.$socket.emit('toggleVideo', {id, room})
     },
     startGame() {
