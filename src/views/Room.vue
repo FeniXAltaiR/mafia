@@ -36,7 +36,7 @@
       </v-col>
     </v-row>
     <v-row class="align-center flex-wrap">
-      <v-col md="3" sm="6" v-for="(player, id, index) in peerConnections" :key="index">
+      <v-col md="3" sm="6" v-for="player in getPlayerStreams" :key="player.id">
         <template v-if="player.stream">
           <video
             :srcObject.prop="player.stream"
@@ -45,8 +45,11 @@
             style="max-height: calc((100vh - 120px - 16px) / 3); max-width: 100%; border-radius: 8px; border: 2px solid grey"
           ></video>
           <div>
-            <v-btn @click="toggleVideo(player)">
-              <v-icon>mdi-pause</v-icon>
+            <v-btn icon class="white mr-2" @click="toggleVideo(player)">
+              <v-icon>mdi-stop</v-icon>
+            </v-btn>
+            <v-btn icon class="white mr-2" @click="checkRole(player)">
+              <v-icon>mdi-magnify</v-icon>
             </v-btn>
             <p>{{ player.role || 'undefined' }}</p>
           </div>
@@ -86,7 +89,6 @@ export default {
   computed: {
     getPlayerStreams() {
       // console.log('GET_PLAYER_STREAMS', console.table(Object.values(this.peerConnections)))
-      console.log('GET_PLAYER_STREAMS', Object.values(this.peerConnections))
       return Object.values(this.peerConnections)
     }
   },
@@ -105,8 +107,12 @@ export default {
     time({time}) {
       this.time = time
     },
+    checkRole({fromId}) {
+      const {role, room = this.room} = this.peerConnections[this.$socket.id]
+      this.$socket.emit('getRole', {fromId: this.$socket.id, toId: fromId, role, room})
+    },
     getRole({uuid, role}) {
-      this.peerConnections[uuid].role = role
+      this.$set(this.peerConnections[uuid], 'role', role)
     },
     startGame() {
       this.gameIsStarted = true
@@ -308,6 +314,9 @@ export default {
     toggleVideo({id, room}) {
       console.log(id, room)
       this.$socket.emit('toggleVideo', {id, room})
+    },
+    checkRole({id, room}) {
+      this.$socket.emit('checkRole', {fromId: this.$socket.id, toId: id, room})
     },
     addDuration(e, duration = 10000) {
       this.duration += duration
