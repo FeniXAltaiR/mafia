@@ -38,20 +38,28 @@
     <v-row class="align-center flex-wrap">
       <v-col md="3" sm="6" v-for="player in getPlayerStreams" :key="player.id">
         <template v-if="player.stream">
-          <video
-            :srcObject.prop="player.stream"
-            muted
-            autoplay
-            style="max-height: calc((100vh - 120px - 16px) / 3); max-width: 100%; border-radius: 8px; border: 2px solid grey"
-          ></video>
+          <v-badge color="error" :content="1" :value="true">
+            <video
+              :srcObject.prop="player.stream"
+              muted
+              autoplay
+              style="max-height: calc((100vh - 120px - 16px) / 3); max-width: 100%; border-radius: 8px; border: 2px solid grey"
+            ></video>
+          </v-badge>
           <div>
-            <v-btn icon class="white mr-2" @click="toggleVideo(player)">
+            <v-btn icon class="white--text" @click="toggleVideo(player)">
               <v-icon>mdi-stop</v-icon>
             </v-btn>
-            <v-btn v-if="canCheckRole(player)" icon class="white mr-2" @click="checkRole(player)">
+            <v-btn icon class="white--text" @click="checkRole(player)">
               <v-icon>mdi-magnify</v-icon>
             </v-btn>
-            <p>{{ player.role || 'undefined' }}</p>
+            <v-btn icon @click="addDuration" class="error--text white">
+              <v-icon>mdi-axe</v-icon>
+            </v-btn>
+            <v-btn icon @click="addDuration" class="primary--text white">
+              <v-icon>mdi-bottle-tonic-plus</v-icon>
+            </v-btn>
+            <p>{{ formatRole(player) }}</p>
           </div>
         </template>
       </v-col>
@@ -106,10 +114,6 @@ export default {
     },
     time({time}) {
       this.time = time
-    },
-    checkRole({fromId}) {
-      const {role, room = this.room} = this.findPc(this.$socket.id)
-      this.$socket.emit('getRole', {fromId: this.$socket.id, toId: fromId, role, room})
     },
     getRole({uuid, role}) {
       this.$set(this.findPc(uuid), 'role', role)
@@ -327,8 +331,8 @@ export default {
         this.canCheck
       )
     },
-    checkRole({id, room}) {
-      this.$socket.emit('checkRole', {fromId: this.$socket.id, toId: id, room})
+    checkRole({id}) {
+      this.$set(this.findPc(id), 'isVisibleRole', true)
       this.canCheck = false
     },
     addDuration(e, duration = 10000) {
@@ -394,6 +398,12 @@ export default {
     },
     shouldEndGame() {
       return this.gameSteps.length === 0
+    },
+    formatRole(player) {
+      if (player.isVisibleRole || (player.id === this.$socket.id && player.role)) {
+        return player.role
+      }
+      return 'undefined'
     },
     nextStep(f, duration = 5000) {
       this.duration = duration

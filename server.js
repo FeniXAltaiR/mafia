@@ -94,20 +94,12 @@ io.on('connect', socket => {
 
     players.forEach(uuid => {
       const role = gameRoles.pop() || 'citizen'
-      io.to(uuid).emit('getRole', {
+      io.to(room).emit('getRole', {
         uuid,
         role
       })
     })
     socket.to(room).emit('startGame')
-  })
-
-  socket.on('checkRole', ({fromId, toId, room}) => {
-    io.to(toId).emit('checkRole', {fromId, room})
-  })
-
-  socket.on('getRole', ({fromId, toId, role}) => {
-    io.to(toId).emit('getRole', {uuid: fromId, role})
   })
 
   socket.on('setGameInfo', info => {
