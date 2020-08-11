@@ -35,10 +35,10 @@
         </v-row>
       </v-col>
     </v-row>
-    <v-row class="align-center flex-wrap">
+    <v-row class="align-center flex-wrap px-2">
       <v-col md="3" sm="6" v-for="player in getPlayerStreams" :key="player.id">
         <template v-if="player.stream">
-          <v-badge color="error" :content="1" :value="true">
+          <v-badge color="error" :content="player.killPlayers.length" :value="canSeeBadge(player)">
             <video
               :srcObject.prop="player.stream"
               muted
@@ -50,13 +50,13 @@
             <v-btn icon class="white--text" @click="toggleVideo(player)">
               <v-icon>mdi-stop</v-icon>
             </v-btn>
-            <v-btn icon class="white--text" @click="checkRole(player)">
+            <v-btn v-if="canCheckRole(player)" icon class="white--text" @click="checkRole(player)">
               <v-icon>mdi-magnify</v-icon>
             </v-btn>
-            <v-btn icon @click="addDuration" class="error--text white">
+            <v-btn v-if="canKill(player)" icon @click="kill(player)" class="error--text white">
               <v-icon>mdi-axe</v-icon>
             </v-btn>
-            <v-btn icon @click="addDuration" class="primary--text white">
+            <v-btn v-if="canHeal(player)" icon @click="heal(player)" class="primary--text white">
               <v-icon>mdi-bottle-tonic-plus</v-icon>
             </v-btn>
             <p>{{ formatRole(player) }}</p>
@@ -117,6 +117,24 @@ export default {
     },
     getRole({uuid, role}) {
       this.$set(this.findPc(uuid), 'role', role)
+    },
+    kill({fromId, toId}) {
+      this.peerConnections.forEach(pc => {
+        if (pc.id === toId) {
+          pc.killPlayers.push(fromId)
+        } else {
+          pc.killPlayers = pc.killPlayers.filter(player => player !== fromId)
+        }
+      })
+    },
+    heal({toId}) {
+      this.peerConnections.forEach(pc => {
+        if (pc.id === toId) {
+          this.$set(pc, 'isHeal', true)
+        } else {
+          this.$set(pc, 'isHeal', false)
+        }
+      })
     },
     setGameInfo(info) {
       this.gameInfo = info
@@ -222,7 +240,8 @@ export default {
         displayName: this.$socket.id,
         stream,
         id: this.$socket.id,
-        room: this.room
+        room: this.room,
+        killPlayers: []
       })
       this.$socket.emit('isInitiator', {
         room: this.room
@@ -241,7 +260,8 @@ export default {
         displayName,
         pc: new RTCPeerConnection(this.pcConfig),
         id: peerUuid,
-        room: this.room
+        room: this.room,
+        killPlayers: []
       })
       const existPc = this.findPc(peerUuid)
       existPc.pc.onicecandidate = event => this.gotIceCandidate(event, peerUuid)
@@ -324,10 +344,15 @@ export default {
       console.log(id, room)
       this.$socket.emit('toggleVideo', {id, room})
     },
+
     canCheckRole({id}) {
+      const {role} = this.findPc(this.$socket.id)
+
       return (
         this.$socket.id !== id &&
-        this.findPc(this.$socket.id).role === this.gameInfo.type &&
+        !this.findPc(id).isVisibleRole &&
+        ['detective', 'boss'].includes(role) &&
+        role === this.gameInfo.type &&
         this.canCheck
       )
     },
@@ -335,6 +360,44 @@ export default {
       this.$set(this.findPc(id), 'isVisibleRole', true)
       this.canCheck = false
     },
+
+    canKill({id}) {
+      const {role} = this.findPc(this.$socket.id)
+      const {killPlayers = []} = this.findPc(id)
+
+      return (
+        ['boss', 'mafia'].includes(role) &&
+        this.gameInfo.type === 'mafia' &&
+        !killPlayers.includes(this.$socket.id)
+      )
+    },
+    kill({id}) {
+      this.$socket.emit('kill', {
+        fromId: this.$socket.id,
+        toId: id,
+        room: this.room
+      })
+    },
+
+    canHeal({id}) {
+      const {role} = this.findPc(this.$socket.id)
+      const {isHeal, isHealedLastRound} = this.findPc(id)
+
+      return role === 'doctor' && role === this.gameInfo.type && !isHeal && !isHealedLastRound
+    },
+    heal({id}) {
+      this.$socket.emit('heal', {
+        toId: id,
+        room: this.room
+      })
+    },
+
+    canSeeBadge(player) {
+      const {role} = this.findPc(this.$socket.id)
+
+      return ['boss', 'mafia'].includes(role) && player.killPlayers.length
+    },
+
     addDuration(e, duration = 10000) {
       this.duration += duration
     },
@@ -374,19 +437,19 @@ export default {
       return [
         () => {
           this.duration = duration
-          this.setGameInfo({text: 'night', type: 'mafia'})
+          this.setGameInfo({text: 'night mafia', type: 'mafia'})
         },
         () => {
           this.duration = duration
-          this.setGameInfo({text: 'night', type: 'boss'})
+          this.setGameInfo({text: 'night boss', type: 'boss'})
         },
         () => {
           this.duration = duration
-          this.setGameInfo({text: 'night', type: 'detective'})
+          this.setGameInfo({text: 'night detective', type: 'detective'})
         },
         () => {
           this.duration = duration
-          this.setGameInfo({text: 'night', type: 'doctor'})
+          this.setGameInfo({text: 'night doctor', type: 'doctor'})
         }
       ]
     },

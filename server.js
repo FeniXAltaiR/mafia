@@ -89,7 +89,7 @@ io.on('connect', socket => {
   // })
 
   socket.on('startGame', ({room}) => {
-    const gameRoles = ['mafia', 'boss', 'citizen', 'detective', 'doctor']
+    const gameRoles = ['citizen', 'boss', 'doctor', 'detective', 'mafia']
     const players = playersInRoom(room)
 
     players.forEach(uuid => {
@@ -117,6 +117,19 @@ io.on('connect', socket => {
   socket.on('time', ({room, time}) => {
     socket.to(room).emit('time', {
       time
+    })
+  })
+
+  socket.on('kill', ({fromId, toId, room}) => {
+    io.to(room).emit('kill', {
+      fromId,
+      toId
+    })
+  })
+
+  socket.on('heal', ({toId, room}) => {
+    io.to(room).emit('heal', {
+      toId
     })
   })
 
