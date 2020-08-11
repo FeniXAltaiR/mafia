@@ -494,8 +494,7 @@ export default {
       if (player.isVisibleRole || (player.id === this.$socket.id && player.role)) {
         return player.role
       }
-      // return 'undefined'
-      return player.role
+      return 'undefined'
     },
     nextStep(f, duration = 5000) {
       this.duration = duration
