@@ -53,7 +53,12 @@
             <v-btn v-if="canCheckRole(player)" icon class="white--text" @click="checkRole(player)">
               <v-icon>mdi-magnify</v-icon>
             </v-btn>
-            <v-btn v-if="canKill(player)" icon @click="kill(player)" class="error--text white">
+            <v-btn
+              v-if="canVoteForKill(player)"
+              icon
+              @click="voteForkill(player)"
+              class="error--text white"
+            >
               <v-icon>mdi-axe</v-icon>
             </v-btn>
             <v-btn v-if="canHeal(player)" icon @click="heal(player)" class="primary--text white">
@@ -118,7 +123,7 @@ export default {
     getRole({uuid, role}) {
       this.$set(this.findPc(uuid), 'role', role)
     },
-    kill({fromId, toId}) {
+    voteForkill({fromId, toId}) {
       this.peerConnections.forEach(pc => {
         if (pc.id === toId) {
           pc.killPlayers.push(fromId)
@@ -135,6 +140,9 @@ export default {
           this.$set(pc, 'isHeal', false)
         }
       })
+    },
+    kill({id}) {
+      this.$set(this.findPc(id), 'isAlive', false)
     },
     setGameInfo(info) {
       this.gameInfo = info
@@ -241,7 +249,8 @@ export default {
         stream,
         id: this.$socket.id,
         room: this.room,
-        killPlayers: []
+        killPlayers: [],
+        isAlive: true
       })
       this.$socket.emit('isInitiator', {
         room: this.room
@@ -261,7 +270,8 @@ export default {
         pc: new RTCPeerConnection(this.pcConfig),
         id: peerUuid,
         room: this.room,
-        killPlayers: []
+        killPlayers: [],
+        isAlive: true
       })
       const existPc = this.findPc(peerUuid)
       existPc.pc.onicecandidate = event => this.gotIceCandidate(event, peerUuid)
@@ -361,7 +371,7 @@ export default {
       this.canCheck = false
     },
 
-    canKill({id}) {
+    canVoteForKill({id}) {
       const {role} = this.findPc(this.$socket.id)
       const {killPlayers = []} = this.findPc(id)
 
@@ -371,12 +381,27 @@ export default {
         !killPlayers.includes(this.$socket.id)
       )
     },
-    kill({id}) {
-      this.$socket.emit('kill', {
+    voteForkill({id}) {
+      this.$socket.emit('voteForkill', {
         fromId: this.$socket.id,
         toId: id,
         room: this.room
       })
+    },
+    shouldKill() {
+      const {id, killPlayers, isHeal, isAlive} = this.peerConnections.reduce((result, pc) => {
+        if (pc.killPlayers.length > result.killPlayers.length) {
+          return pc
+        }
+        return result
+      })
+      if (killPlayers.length && !isHeal && isAlive) {
+        this.$socket.emit('kill', {
+          id,
+          room: this.room
+        })
+        this.toggleVideo({id, room: this.room})
+      }
     },
 
     canHeal({id}) {
@@ -450,6 +475,9 @@ export default {
         () => {
           this.duration = duration
           this.setGameInfo({text: 'night doctor', type: 'doctor'})
+        },
+        () => {
+          this.shouldKill()
         }
       ]
     },
@@ -466,13 +494,14 @@ export default {
       if (player.isVisibleRole || (player.id === this.$socket.id && player.role)) {
         return player.role
       }
-      return 'undefined'
+      // return 'undefined'
+      return player.role
     },
     nextStep(f, duration = 5000) {
       this.duration = duration
       this.timer = setInterval(() => {
         if (!this.isPause) {
-          this.duration -= 1000
+          this.duration = Math.max(0, this.duration - 1000)
           this.time = moment(this.duration).format('mm:ss')
           this.$socket.emit('time', {
             time: this.time,

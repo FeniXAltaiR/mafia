@@ -120,10 +120,16 @@ io.on('connect', socket => {
     })
   })
 
-  socket.on('kill', ({fromId, toId, room}) => {
-    io.to(room).emit('kill', {
+  socket.on('voteForkill', ({fromId, toId, room}) => {
+    io.to(room).emit('voteForkill', {
       fromId,
       toId
+    })
+  })
+
+  socket.on('kill', ({id, room}) => {
+    io.to(room).emit('kill', {
+      id
     })
   })
 
