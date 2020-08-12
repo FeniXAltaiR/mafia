@@ -64,6 +64,22 @@
             <v-btn v-if="canHeal(player)" icon @click="heal(player)" class="primary--text white">
               <v-icon>mdi-bottle-tonic-plus</v-icon>
             </v-btn>
+            <v-btn
+              v-if="canNomination(player)"
+              icon
+              @click="nomination(player)"
+              class="primary--text white"
+            >
+              <v-icon>mdi-account-alert</v-icon>
+            </v-btn>
+            <v-btn
+              v-if="canVoteForExile(player)"
+              icon
+              @click="voteForExile(player)"
+              class="primary--text white"
+            >
+              <v-icon>mdi-account-check</v-icon>
+            </v-btn>
             <p>{{ formatRole(player) }}</p>
           </div>
         </template>
@@ -97,6 +113,8 @@ export default {
     gameIsStarted: false,
     isSecondVoting: false,
     canCheck: true,
+    canNominate: true,
+    nominateIndex: 1,
     duration: 0,
     gameSteps: [],
     gameInfo: {}
@@ -133,6 +151,15 @@ export default {
         }
       })
     },
+    voteForExile({fromId, toId}) {
+      this.peerConnections.forEach(pc => {
+        if (pc.id === toId) {
+          pc.votePlayers.push(fromId)
+        } else {
+          pc.votePlayers = pc.votePlayers.filter(player => player !== fromId)
+        }
+      })
+    },
     heal({toId}) {
       this.peerConnections.forEach(pc => {
         if (pc.id === toId) {
@@ -144,6 +171,11 @@ export default {
     },
     kill({id}) {
       this.$set(this.findPc(id), 'isAlive', false)
+    },
+    nomination({id}) {
+      this.$set(this.findPc(id), 'isNominate', true)
+      this.$set(this.findPc(id), 'nominateIndex', this.nominateIndex)
+      this.nominateIndex += 1
     },
     setGameInfo(info) {
       this.gameInfo = info
@@ -374,6 +406,74 @@ export default {
       this.canCheck = false
     },
 
+    canNomination({id, isNominate = false, isAlive}) {
+      return (
+        this.gameInfo.type === 'nomination' &&
+        this.$socket.id !== id &&
+        this.$socket.id === this.gameInfo.active &&
+        this.canNominate &&
+        !isNominate &&
+        isAlive
+      )
+    },
+    nomination({id}) {
+      this.canNominate = false
+      this.$socket.emit('nomination', {id, room: this.room})
+    },
+
+    canVoteForExile({id}) {
+      return this.$socket.id !== id && this.gameInfo.type === 'exile'
+    },
+    voteForExile({id}) {
+      this.$socket.emit('voteForExile', {
+        fromId: this.$socket.id,
+        toId: id,
+        room: this.room
+      })
+    },
+    exile(duration = 5000) {
+      const maxVotePlayers = this.peerConnections.reduce((result, pc) => {
+        const {votePlayers = []} = result[0] || {}
+
+        if (pc.votePlayers.length > votePlayers.length) {
+          return [pc]
+        } else if (pc.votePlayers.length && pc.votePlayers.length === votePlayers.length) {
+          result.push(pc)
+          return result
+        } else {
+          return result
+        }
+      }, [])
+
+      if (!maxVotePlayers.length) {
+        return
+      }
+
+      if (maxVotePlayers.length > 1) {
+        if (this.isSecondVoting) {
+          return
+        }
+
+        this.isSecondVoting = true
+        this.gameSteps.splice(-1, 0, ...this.gameVoting())
+      } else {
+        const {id} = maxVotePlayers[0]
+        this.gameSteps.unshift(
+          () => {
+            this.duration = duration
+            this.setGameInfo({text: `Last word ${id}`, type: 'last_word'})
+          },
+          () => {
+            this.$socket.emit('kill', {
+              id,
+              room: this.room
+            })
+            this.toggleVideo({id, room: this.room})
+          }
+        )
+      }
+    },
+
     canVoteForKill({id}) {
       const {role} = this.findPc(this.$socket.id)
       const {killPlayers = []} = this.findPc(id)
@@ -426,54 +526,13 @@ export default {
       return ['boss', 'mafia'].includes(role) && player.killPlayers.length
     },
 
-    exilePlayer(duration = 5000) {
-      const maxVotePlayers = this.peerConnections.reduce((result, pc) => {
-        const {votePlayers = []} = result[0] || {}
-
-        if (pc.votePlayers.length > votePlayers.length) {
-          return [pc]
-        } else if (pc.votePlayers.length && pc.votePlayers.length === votePlayers.length) {
-          result.push(pc)
-          return result
-        } else {
-          return result
-        }
-      }, [])
-
-      if (!maxVotePlayers.length) {
-        return
-      }
-
-      if (maxVotePlayers.length > 1) {
-        if (this.isSecondVoting) {
-          return
-        }
-
-        this.isSecondVoting = true
-      } else {
-        const {id} = maxVotePlayers[0]
-        this.gameSteps.unshift(
-          () => {
-            this.duration = duration
-            this.setGameInfo({text: `exile ${id}`, type: 'exile'})
-          },
-          () => {
-            this.$socket.emit('kill', {
-              id,
-              room: this.room
-            })
-            this.toggleVideo({id, room: this.room})
-          }
-        )
-      }
-    },
-
     addDuration(e, duration = 10000) {
       this.duration += duration
     },
     startGame() {
       this.$socket.emit('startGame', {room: this.room})
-      this.gameSteps = [...this.randezvous(), ...this.gameNight()]
+      // this.gameSteps = [...this.randezvous(), ...this.gameNight()]
+      this.gameSteps = [...this.gameDay()]
       this.nextStep(this.gameSteps[0], 1000)
       this.gameIsStarted = true
     },
@@ -537,25 +596,45 @@ export default {
           this.setGameInfo({text: 'nomination', type: 'nomination'})
         },
         () => {
-          this.duration = 0
+          this.duration = duration
           this.peerConnections
             .filter(player => player.isAlive)
             .forEach(player => {
-              this.gameSteps.push(() => {
+              this.gameSteps.splice(1, 0, () => {
                 this.duration = duration
-                this.setGameInfo({text: player.id, type: 'nomination'})
+                this.setGameInfo({text: player.id, type: 'nomination', active: player.id})
               })
             })
+        },
+        ...this.gameVoting(),
+        () => {
+          this.gameSteps.push(...this.gameNight())
+        }
+      ]
+    },
+    gameVoting(duration = 5000) {
+      return [
+        () => {
+          this.peerConnections
+            .filter(player => player.isAlive && player.isNominate)
+            .sort((playerA, playerB) => (playerA.nominateIndex > playerB.nominateIndex ? 1 : -1))
+            .forEach(player => {
+              this.gameSteps.splice(-4, 0, () => {
+                this.duration = duration
+                this.setGameInfo({text: `explanation ${player.id}`, type: 'explanation'})
+              })
+            })
+        },
+        () => {
+          this.duration = 10000
+          this.setGameInfo({text: 'vote for exile', type: 'exile'})
         },
         () => {
           this.duration = duration
           this.setGameInfo({text: 'voting', type: 'voting'})
         },
         () => {
-          this.exilePlayer()
-        },
-        () => {
-          this.gameSteps.push(...this.gameNight())
+          this.exile()
         }
       ]
     },

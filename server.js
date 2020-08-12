@@ -127,6 +127,13 @@ io.on('connect', socket => {
     })
   })
 
+  socket.on('voteForExile', ({fromId, toId, room}) => {
+    io.to(room).emit('voteForExile', {
+      fromId,
+      toId
+    })
+  })
+
   socket.on('kill', ({id, room}) => {
     io.to(room).emit('kill', {
       id
@@ -137,6 +144,10 @@ io.on('connect', socket => {
     io.to(room).emit('heal', {
       toId
     })
+  })
+
+  socket.on('nomination', ({id, room}) => {
+    io.to(room).emit('nomination', {id})
   })
 
   socket.on('bye', function() {
