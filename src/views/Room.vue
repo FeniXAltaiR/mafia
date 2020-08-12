@@ -428,7 +428,7 @@ export default {
     },
     startGame() {
       this.$socket.emit('startGame', {room: this.room})
-      this.gameSteps = [...this.randezvous(5000), ...this.gameNight(), this.meeting]
+      this.gameSteps = [...this.randezvous(), ...this.gameNight(), this.meeting, ...this.gameDay()]
       this.nextStep(this.gameSteps[0], 1000)
       this.gameIsStarted = true
     },
@@ -448,7 +448,7 @@ export default {
         room: this.room
       })
     },
-    randezvous(duration = 12000) {
+    randezvous(duration = 5000) {
       const result = [
         ...this.peerConnections.map(player => () => {
           this.duration = duration
@@ -481,6 +481,25 @@ export default {
         }
       ]
     },
+    gameDay(duration = 5000) {
+      return [
+        () => {
+          this.duration = duration
+          this.setGameInfo({text: 'nomination', type: 'nomination'})
+        },
+        () => {
+          this.duration = 0
+          this.peerConnections
+            .filter(player => player.isAlive)
+            .forEach(player => {
+              this.gameSteps.push(() => {
+                this.duration = duration
+                this.setGameInfo({text: player.id, type: 'nomination'})
+              })
+            })
+        }
+      ]
+    },
     meeting(duration = 10000) {
       this.$socket.emit('resetCanCheckRole', {room: this.room})
       this.canCheck = true
@@ -488,7 +507,14 @@ export default {
       this.setGameInfo({text: 'meeting', type: 'meeting'})
     },
     shouldEndGame() {
-      return this.gameSteps.length === 0
+      const mafia = this.peerConnections.filter(
+        player => ['boss', 'mafia'].includes(player.role) && player.isAlive
+      )
+      const citizen = this.peerConnections.filter(
+        player => !['boss', 'mafia'].includes(player.role) && player.isAlive
+      )
+
+      return mafia.length >= citizen.length || !mafia.length || !this.gameSteps.length
     },
     formatRole(player) {
       if (player.isVisibleRole || (player.id === this.$socket.id && player.role)) {
