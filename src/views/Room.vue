@@ -95,6 +95,7 @@ export default {
     isPause: false,
     isInitiator: false,
     gameIsStarted: false,
+    isSecondVoting: false,
     canCheck: true,
     duration: 0,
     gameSteps: [],
@@ -250,6 +251,7 @@ export default {
         id: this.$socket.id,
         room: this.room,
         killPlayers: [],
+        votePlayers: [],
         isAlive: true
       })
       this.$socket.emit('isInitiator', {
@@ -271,6 +273,7 @@ export default {
         id: peerUuid,
         room: this.room,
         killPlayers: [],
+        votePlayers: [],
         isAlive: true
       })
       const existPc = this.findPc(peerUuid)
@@ -423,12 +426,54 @@ export default {
       return ['boss', 'mafia'].includes(role) && player.killPlayers.length
     },
 
+    exilePlayer(duration = 5000) {
+      const maxVotePlayers = this.peerConnections.reduce((result, pc) => {
+        const {votePlayers = []} = result[0] || {}
+
+        if (pc.votePlayers.length > votePlayers.length) {
+          return [pc]
+        } else if (pc.votePlayers.length && pc.votePlayers.length === votePlayers.length) {
+          result.push(pc)
+          return result
+        } else {
+          return result
+        }
+      }, [])
+
+      if (!maxVotePlayers.length) {
+        return
+      }
+
+      if (maxVotePlayers.length > 1) {
+        if (this.isSecondVoting) {
+          return
+        }
+
+        this.isSecondVoting = true
+      } else {
+        const {id} = maxVotePlayers[0]
+        this.gameSteps.unshift(
+          () => {
+            this.duration = duration
+            this.setGameInfo({text: `exile ${id}`, type: 'exile'})
+          },
+          () => {
+            this.$socket.emit('kill', {
+              id,
+              room: this.room
+            })
+            this.toggleVideo({id, room: this.room})
+          }
+        )
+      }
+    },
+
     addDuration(e, duration = 10000) {
       this.duration += duration
     },
     startGame() {
       this.$socket.emit('startGame', {room: this.room})
-      this.gameSteps = [...this.randezvous(), ...this.gameNight(), this.meeting, ...this.gameDay()]
+      this.gameSteps = [...this.randezvous(), ...this.gameNight()]
       this.nextStep(this.gameSteps[0], 1000)
       this.gameIsStarted = true
     },
@@ -478,6 +523,10 @@ export default {
         },
         () => {
           this.shouldKill()
+        },
+        () => {
+          this.gameSteps.push(this.meeting)
+          this.gameSteps.push(...this.gameDay())
         }
       ]
     },
@@ -497,6 +546,16 @@ export default {
                 this.setGameInfo({text: player.id, type: 'nomination'})
               })
             })
+        },
+        () => {
+          this.duration = duration
+          this.setGameInfo({text: 'voting', type: 'voting'})
+        },
+        () => {
+          this.exilePlayer()
+        },
+        () => {
+          this.gameSteps.push(...this.gameNight())
         }
       ]
     },
