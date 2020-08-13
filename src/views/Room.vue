@@ -185,6 +185,9 @@ export default {
       this.$set(this.findPc(id), 'nominateIndex', this.nominateIndex)
       this.nominateIndex += 1
     },
+    secondVoting(players) {
+      this.secondVoting(players)
+    },
     setGameInfo(info) {
       this.gameInfo = info
     },
@@ -208,6 +211,7 @@ export default {
       })
       this.nominateIndex = 1
       this.canNominate = true
+      this.isSecondVoting = false
     },
     startGame() {
       this.gameIsStarted = true
@@ -216,9 +220,6 @@ export default {
       this.$socket.emit('resetGameNight', {room: this.room})
       this.$socket.emit('resetGameDay', {room: this.room})
       this.peerConnections.forEach(pc => {
-        if (!pc.isAlive) {
-          this.toggleVideo(pc)
-        }
         this.$set(pc, 'isAlive', true)
         this.$set(pc, 'isVisibleRole', false)
         this.$set(pc, 'role', undefined)
@@ -503,6 +504,12 @@ export default {
         }
 
         this.isSecondVoting = true
+        const maxVotePlayersIds = maxVotePlayers.map(player => player.id)
+        this.secondVoting(maxVotePlayersIds)
+        this.$socket.emit('secondVoting', {
+          room: this.room,
+          players: maxVotePlayersIds
+        })
         this.gameSteps.splice(-1, 0, ...this.gameVoting())
       } else {
         const {id} = maxVotePlayers[0]
@@ -588,6 +595,19 @@ export default {
       return player.killPlayers.length || player.votePlayers.length
     },
 
+    secondVoting(players) {
+      this.nominateIndex = 1
+      this.peerConnections.forEach(pc => {
+        this.$set(pc, 'isNominate', false)
+        this.$set(pc, 'nominateIndex', 0)
+        this.$set(pc, 'votePlayers', [])
+        if (players.includes(pc.id)) {
+          this.$set(pc, 'isNominate', true)
+          this.$set(pc, 'nominateIndex', this.nominateIndex)
+          this.nominateIndex += 1
+        }
+      })
+    },
     addDuration(e, duration = 10000) {
       this.duration += duration
     },
@@ -602,6 +622,11 @@ export default {
       this.isPause = !this.isPause
     },
     endGame() {
+      this.peerConnections.forEach(pc => {
+        if (!pc.isAlive) {
+          this.toggleVideo(pc)
+        }
+      })
       this.$socket.emit('endGame', {room: this.room})
       this.setGameInfo({text: 'Game over', type: 'end'})
       clearInterval(this.timer)

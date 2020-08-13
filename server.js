@@ -118,6 +118,10 @@ io.on('connect', socket => {
     io.to(room).emit('endGame')
   })
 
+  socket.on('secondVoting', ({room, players}) => {
+    socket.to(room).emit('secondVoting', players)
+  })
+
   socket.on('time', ({room, time}) => {
     socket.to(room).emit('time', {
       time
