@@ -110,8 +110,12 @@ io.on('connect', socket => {
     io.to(room).emit('resetGameNight')
   })
 
+  socket.on('resetGameDay', ({room}) => {
+    io.to(room).emit('resetGameDay')
+  })
+
   socket.on('endGame', ({room}) => {
-    socket.to(room).emit('endGame')
+    io.to(room).emit('endGame')
   })
 
   socket.on('time', ({room, time}) => {

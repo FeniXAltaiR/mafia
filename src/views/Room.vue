@@ -200,10 +200,30 @@ export default {
       })
       this.canCheck = true
     },
+    resetGameDay() {
+      this.peerConnections.forEach(pc => {
+        this.$set(pc, 'isNominate', false)
+        this.$set(pc, 'nominateIndex', 0)
+        this.$set(pc, 'votePlayers', [])
+      })
+      this.nominateIndex = 1
+      this.canNominate = true
+    },
     startGame() {
       this.gameIsStarted = true
     },
     endGame() {
+      this.$socket.emit('resetGameNight', {room: this.room})
+      this.$socket.emit('resetGameDay', {room: this.room})
+      this.peerConnections.forEach(pc => {
+        if (!pc.isAlive) {
+          this.toggleVideo(pc)
+        }
+        this.$set(pc, 'isAlive', true)
+        this.$set(pc, 'isVisibleRole', false)
+        this.$set(pc, 'role', undefined)
+      })
+      this.isSecondVoting = false
       this.gameIsStarted = false
     },
     fullRoom() {
@@ -442,13 +462,14 @@ export default {
       this.$socket.emit('nomination', {id, room: this.room})
     },
 
-    canVoteForExile({id, isAlive, votePlayers}) {
+    canVoteForExile({id, isAlive, votePlayers, isNominate}) {
       return (
         this.$socket.id !== id &&
         this.gameInfo.type === 'exile' &&
         !votePlayers.includes(this.$socket.id) &&
         this.findPc(this.$socket.id).isAlive &&
-        isAlive
+        isAlive &&
+        isNominate
       )
     },
     voteForExile({id}) {
@@ -472,7 +493,11 @@ export default {
         }
       }, [])
 
-      if (maxVotePlayers.length > 1 || !maxVotePlayers.length) {
+      if (!maxVotePlayers.length) {
+        return
+      }
+
+      if (maxVotePlayers.length > 1) {
         if (this.isSecondVoting) {
           return
         }
@@ -570,7 +595,7 @@ export default {
       this.$socket.emit('startGame', {room: this.room})
       this.gameSteps = [...this.randezvous()]
       // this.gameSteps = [...this.gameDay()]
-      this.nextStep(this.gameSteps[0], 1000)
+      this.nextStep(this.gameSteps[0], 5000)
       this.gameIsStarted = true
     },
     pauseGame() {
@@ -578,9 +603,9 @@ export default {
     },
     endGame() {
       this.$socket.emit('endGame', {room: this.room})
+      this.setGameInfo({text: 'Game over', type: 'end'})
       clearInterval(this.timer)
       this.gameIsStarted = false
-      alert('Game is over')
     },
     setGameInfo(info) {
       this.gameInfo = info
@@ -645,6 +670,7 @@ export default {
         },
         ...this.gameVoting(),
         () => {
+          this.$socket.emit('resetGameDay', {room: this.room})
           this.gameSteps.push(...this.gameNight())
         }
       ]
