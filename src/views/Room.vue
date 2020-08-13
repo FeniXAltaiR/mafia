@@ -188,7 +188,16 @@ export default {
     setGameInfo(info) {
       this.gameInfo = info
     },
-    resetCanCheckRole() {
+    resetGameNight() {
+      this.peerConnections.forEach(pc => {
+        if (pc.isHeal) {
+          this.$set(pc, 'isHealedLastRound', true)
+        } else if (pc.isHealedLastRound && !pc.isHeal) {
+          this.$set(pc, 'isHealedLastRound', false)
+        }
+        this.$set(pc, 'isHeal', false)
+        this.$set(pc, 'killPlayers', [])
+      })
       this.canCheck = true
     },
     startGame() {
@@ -559,7 +568,7 @@ export default {
     },
     startGame() {
       this.$socket.emit('startGame', {room: this.room})
-      this.gameSteps = [...this.randezvous(), ...this.gameNight()]
+      this.gameSteps = [...this.randezvous()]
       // this.gameSteps = [...this.gameDay()]
       this.nextStep(this.gameSteps[0], 1000)
       this.gameIsStarted = true
@@ -585,7 +594,10 @@ export default {
         ...this.peerConnections.map(player => () => {
           this.duration = duration
           this.setGameInfo({text: player.id, type: 'randezvous'})
-        })
+        }),
+        () => {
+          this.gameSteps.push(...this.gameNight())
+        }
       ]
 
       return result
@@ -612,13 +624,13 @@ export default {
           this.shouldKill()
         },
         () => {
-          this.gameSteps.push(this.meeting)
           this.gameSteps.push(...this.gameDay())
         }
       ]
     },
     gameDay(duration = 5000) {
       return [
+        this.meeting,
         () => {
           this.duration = duration
           this.setGameInfo({text: 'nomination', type: 'nomination'})
@@ -664,7 +676,7 @@ export default {
       ]
     },
     meeting(duration = 10000) {
-      this.$socket.emit('resetCanCheckRole', {room: this.room})
+      this.$socket.emit('resetGameNight', {room: this.room})
       this.duration = duration
       this.setGameInfo({text: 'meeting', type: 'meeting'})
     },

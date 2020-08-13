@@ -106,8 +106,8 @@ io.on('connect', socket => {
     socket.to(info.room).emit('setGameInfo', info)
   })
 
-  socket.on('resetCanCheckRole', ({room}) => {
-    io.to(room).emit('resetCanCheckRole')
+  socket.on('resetGameNight', ({room}) => {
+    io.to(room).emit('resetGameNight')
   })
 
   socket.on('endGame', ({room}) => {
