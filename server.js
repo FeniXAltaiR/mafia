@@ -107,7 +107,7 @@ io.on('connect', socket => {
   })
 
   socket.on('resetCanCheckRole', ({room}) => {
-    socket.to(room).emit('resetCanCheckRole')
+    io.to(room).emit('resetCanCheckRole')
   })
 
   socket.on('endGame', ({room}) => {
@@ -120,8 +120,8 @@ io.on('connect', socket => {
     })
   })
 
-  socket.on('voteForkill', ({fromId, toId, room}) => {
-    io.to(room).emit('voteForkill', {
+  socket.on('voteForKill', ({fromId, toId, room}) => {
+    io.to(room).emit('voteForKill', {
       fromId,
       toId
     })

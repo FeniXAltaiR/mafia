@@ -38,13 +38,21 @@
     <v-row class="align-center flex-wrap px-2">
       <v-col md="3" sm="6" v-for="player in getPlayerStreams" :key="player.id">
         <template v-if="player.stream">
-          <v-badge color="error" :content="player.killPlayers.length" :value="canSeeBadge(player)">
-            <video
-              :srcObject.prop="player.stream"
-              muted
-              autoplay
-              style="max-height: calc((100vh - 120px - 16px) / 3); max-width: 100%; border-radius: 8px; border: 2px solid grey"
-            ></video>
+          <v-badge
+            color="primary"
+            right
+            bottom
+            :content="player.nominateIndex"
+            :value="player.nominateIndex"
+          >
+            <v-badge color="error" :content="badgeContent(player)" :value="canSeeBadge(player)">
+              <video
+                :srcObject.prop="player.stream"
+                muted
+                autoplay
+                style="max-height: calc((100vh - 120px - 16px) / 3); max-width: 100%; border-radius: 8px; border: 2px solid grey"
+              ></video>
+            </v-badge>
           </v-badge>
           <div>
             <v-btn icon class="white--text" @click="toggleVideo(player)">
@@ -56,7 +64,7 @@
             <v-btn
               v-if="canVoteForKill(player)"
               icon
-              @click="voteForkill(player)"
+              @click="voteForKill(player)"
               class="error--text white"
             >
               <v-icon>mdi-axe</v-icon>
@@ -142,7 +150,7 @@ export default {
     getRole({uuid, role}) {
       this.$set(this.findPc(uuid), 'role', role)
     },
-    voteForkill({fromId, toId}) {
+    voteForKill({fromId, toId}) {
       this.peerConnections.forEach(pc => {
         if (pc.id === toId) {
           pc.killPlayers.push(fromId)
@@ -284,7 +292,8 @@ export default {
         room: this.room,
         killPlayers: [],
         votePlayers: [],
-        isAlive: true
+        isAlive: true,
+        nominateIndex: 0
       })
       this.$socket.emit('isInitiator', {
         room: this.room
@@ -306,7 +315,8 @@ export default {
         room: this.room,
         killPlayers: [],
         votePlayers: [],
-        isAlive: true
+        isAlive: true,
+        nominateIndex: 0
       })
       const existPc = this.findPc(peerUuid)
       existPc.pc.onicecandidate = event => this.gotIceCandidate(event, peerUuid)
@@ -396,6 +406,7 @@ export default {
       return (
         this.$socket.id !== id &&
         !this.findPc(id).isVisibleRole &&
+        this.findPc(this.$socket.id).isAlive &&
         ['detective', 'boss'].includes(role) &&
         role === this.gameInfo.type &&
         this.canCheck
@@ -408,6 +419,7 @@ export default {
 
     canNomination({id, isNominate = false, isAlive}) {
       return (
+        this.findPc(this.$socket.id).isAlive &&
         this.gameInfo.type === 'nomination' &&
         this.$socket.id !== id &&
         this.$socket.id === this.gameInfo.active &&
@@ -421,8 +433,14 @@ export default {
       this.$socket.emit('nomination', {id, room: this.room})
     },
 
-    canVoteForExile({id}) {
-      return this.$socket.id !== id && this.gameInfo.type === 'exile'
+    canVoteForExile({id, isAlive, votePlayers}) {
+      return (
+        this.$socket.id !== id &&
+        this.gameInfo.type === 'exile' &&
+        !votePlayers.includes(this.$socket.id) &&
+        this.findPc(this.$socket.id).isAlive &&
+        isAlive
+      )
     },
     voteForExile({id}) {
       this.$socket.emit('voteForExile', {
@@ -445,11 +463,7 @@ export default {
         }
       }, [])
 
-      if (!maxVotePlayers.length) {
-        return
-      }
-
-      if (maxVotePlayers.length > 1) {
+      if (maxVotePlayers.length > 1 || !maxVotePlayers.length) {
         if (this.isSecondVoting) {
           return
         }
@@ -458,7 +472,9 @@ export default {
         this.gameSteps.splice(-1, 0, ...this.gameVoting())
       } else {
         const {id} = maxVotePlayers[0]
-        this.gameSteps.unshift(
+        this.gameSteps.splice(
+          -1,
+          0,
           () => {
             this.duration = duration
             this.setGameInfo({text: `Last word ${id}`, type: 'last_word'})
@@ -481,11 +497,12 @@ export default {
       return (
         ['boss', 'mafia'].includes(role) &&
         this.gameInfo.type === 'mafia' &&
+        this.findPc(this.$socket.id).isAlive &&
         !killPlayers.includes(this.$socket.id)
       )
     },
-    voteForkill({id}) {
-      this.$socket.emit('voteForkill', {
+    voteForKill({id}) {
+      this.$socket.emit('voteForKill', {
         fromId: this.$socket.id,
         toId: id,
         room: this.room
@@ -511,7 +528,13 @@ export default {
       const {role} = this.findPc(this.$socket.id)
       const {isHeal, isHealedLastRound} = this.findPc(id)
 
-      return role === 'doctor' && role === this.gameInfo.type && !isHeal && !isHealedLastRound
+      return (
+        role === 'doctor' &&
+        role === this.gameInfo.type &&
+        this.findPc(this.$socket.id).isAlive &&
+        !isHeal &&
+        !isHealedLastRound
+      )
     },
     heal({id}) {
       this.$socket.emit('heal', {
@@ -523,7 +546,12 @@ export default {
     canSeeBadge(player) {
       const {role} = this.findPc(this.$socket.id)
 
-      return ['boss', 'mafia'].includes(role) && player.killPlayers.length
+      return (
+        (['boss', 'mafia'].includes(role) && player.killPlayers.length) || player.votePlayers.length
+      )
+    },
+    badgeContent(player) {
+      return player.killPlayers.length || player.votePlayers.length
     },
 
     addDuration(e, duration = 10000) {
@@ -531,8 +559,8 @@ export default {
     },
     startGame() {
       this.$socket.emit('startGame', {room: this.room})
-      // this.gameSteps = [...this.randezvous(), ...this.gameNight()]
-      this.gameSteps = [...this.gameDay()]
+      this.gameSteps = [...this.randezvous(), ...this.gameNight()]
+      // this.gameSteps = [...this.gameDay()]
       this.nextStep(this.gameSteps[0], 1000)
       this.gameIsStarted = true
     },
@@ -594,9 +622,6 @@ export default {
         () => {
           this.duration = duration
           this.setGameInfo({text: 'nomination', type: 'nomination'})
-        },
-        () => {
-          this.duration = duration
           this.peerConnections
             .filter(player => player.isAlive)
             .forEach(player => {
@@ -640,7 +665,6 @@ export default {
     },
     meeting(duration = 10000) {
       this.$socket.emit('resetCanCheckRole', {room: this.room})
-      this.canCheck = true
       this.duration = duration
       this.setGameInfo({text: 'meeting', type: 'meeting'})
     },
