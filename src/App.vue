@@ -1,13 +1,12 @@
 <template>
   <v-app>
-    <v-navigation-drawer app color="#0079BF" v-model="drawer">
-      <!-- -->
-    </v-navigation-drawer>
+    <!-- <v-navigation-drawer app color="#0079BF" v-model="drawer">
+    </v-navigation-drawer> -->
 
     <v-app-bar app dark dense color="#0079BF" v-model="bar">
-      <v-btn icon small class="mr-2" @click="toggleDrawer">
+      <!-- <v-btn icon small class="mr-2" @click="toggleDrawer">
         <v-icon>mdi-menu</v-icon>
-      </v-btn>
+      </v-btn> -->
       <h1 @click="goToMainPage">MAFIA</h1>
       <v-spacer></v-spacer>
       <v-btn color="#0067A3" @click="createRoom">Create room</v-btn>

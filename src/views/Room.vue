@@ -1,9 +1,13 @@
 <template>
   <div>
-    <v-row>
-      <v-col class="text-center">
-        <v-row class="justify-center align-center">
+    <v-row class="px-5">
+      <v-col md="5">
+        <v-row class="align-center">
           <span class="mr-2 white--text">{{ gameInfo.text }}</span>
+        </v-row>
+      </v-col>
+      <v-col md="2">
+        <v-row class="justify-center align-center">
           <span class="mr-2 white--text">{{ time }}</span>
           <v-btn
             v-if="gameIsStarted && isInitiator"
@@ -45,51 +49,155 @@
             :content="player.nominateIndex"
             :value="player.nominateIndex"
           >
-            <v-badge color="error" :content="badgeContent(player)" :value="canSeeBadge(player)">
-              <video
-                :srcObject.prop="player.stream"
-                muted
-                autoplay
-                style="max-height: calc((100vh - 120px - 16px) / 3); max-width: 100%; border-radius: 8px; border: 2px solid grey"
-              ></video>
+            <v-badge color="error" :value="canSeeBadge(player)">
+              <template v-slot:badge>
+                <v-tooltip left>
+                  <template v-slot:activator="{on}">
+                    <span class="pointer" v-on="on">{{ badgeContent(player) }}</span>
+                  </template>
+                  <div v-for="id in getListPlayers(player)" :key="id">
+                    <span>{{ findPc(id).displayName }}</span>
+                  </div>
+                </v-tooltip>
+              </template>
+              <v-hover v-slot:default="{hover}" open-delay="200">
+                <div>
+                  <video
+                    :srcObject.prop="player.stream"
+                    muted
+                    autoplay
+                    style="max-height: calc((100vh - 120px - 16px) / 3); max-width: 100%; border-radius: 8px; border: 2px solid grey"
+                  ></video>
+                  <div
+                    class="d-flex px-2 pb-3 pt-1 flex-column justify-space-between white--text"
+                    style="height: 100%; width: 100%; position: absolute; top: 0; border-radius: 8px;"
+                  >
+                    <div class="d-flex justify-space-between">
+                      <div>
+                        <v-slide-x-transition>
+                          <v-btn icon class="white--text" @click="toggleVideo(player)" v-if="hover">
+                            <v-icon>mdi-stop</v-icon>
+                          </v-btn>
+                        </v-slide-x-transition>
+                        <div>
+                          <v-dialog v-model="dialog.value" persistent max-width="600px">
+                            <template v-slot:activator="{on}">
+                              <v-slide-x-transition>
+                                <v-btn
+                                  v-on="on"
+                                  v-if="hover && player.id === $socket.id"
+                                  icon
+                                  class="white--text"
+                                  @click="openDialog(player)"
+                                >
+                                  <v-icon small>mdi-cog</v-icon>
+                                </v-btn>
+                              </v-slide-x-transition>
+                            </template>
+                            <v-card>
+                              <v-card-title>
+                                <span class="headline">Settings</span>
+                              </v-card-title>
+                              <v-card-text>
+                                <v-container>
+                                  <v-row>
+                                    <v-col cols="12" md="12">
+                                      <v-text-field
+                                        autofocus
+                                        label="Nickname*"
+                                        v-model="dialog.displayName"
+                                        required
+                                        @keypress.enter="updateSettings"
+                                      ></v-text-field>
+                                    </v-col>
+                                  </v-row>
+                                </v-container>
+                              </v-card-text>
+                              <v-card-actions>
+                                <v-spacer></v-spacer>
+                                <v-btn color="blue darken-1" text @click="dialog.value = false"
+                                  >Close</v-btn
+                                >
+                                <v-btn color="blue darken-1" text @click="updateSettings"
+                                  >Save</v-btn
+                                >
+                              </v-card-actions>
+                            </v-card>
+                          </v-dialog>
+                        </div>
+                      </div>
+                      <div>
+                        <v-slide-x-reverse-transition>
+                          <v-btn
+                            v-if="canCheckRole(player)"
+                            icon
+                            class="white--text"
+                            @click="checkRole(player)"
+                          >
+                            <v-icon>mdi-magnify</v-icon>
+                          </v-btn>
+                        </v-slide-x-reverse-transition>
+                        <v-slide-x-reverse-transition>
+                          <v-btn
+                            v-if="canVoteForKill(player)"
+                            icon
+                            @click="voteForKill(player)"
+                            class="error--text white"
+                          >
+                            <v-icon>mdi-axe</v-icon>
+                          </v-btn>
+                        </v-slide-x-reverse-transition>
+                        <v-slide-x-reverse-transition>
+                          <v-btn
+                            v-if="canHeal(player)"
+                            icon
+                            @click="heal(player)"
+                            class="primary--text white"
+                          >
+                            <v-icon>mdi-bottle-tonic-plus</v-icon>
+                          </v-btn>
+                        </v-slide-x-reverse-transition>
+                        <v-slide-x-reverse-transition>
+                          <v-btn
+                            v-if="canNomination(player)"
+                            icon
+                            @click="nomination(player)"
+                            class="primary--text white"
+                          >
+                            <v-icon>mdi-account-alert</v-icon>
+                          </v-btn>
+                        </v-slide-x-reverse-transition>
+                        <v-slide-x-reverse-transition>
+                          <v-btn
+                            v-if="canVoteForExile(player)"
+                            icon
+                            @click="voteForExile(player)"
+                            class="primary--text white"
+                          >
+                            <v-icon>mdi-account-check</v-icon>
+                          </v-btn>
+                        </v-slide-x-reverse-transition>
+                      </div>
+                    </div>
+                    <div class="d-flex justify-space-between align-end">
+                      <div>
+                        <div class="bgtext px-1 py-1">
+                          <span>{{ findPc(player.id).displayName }}</span>
+                        </div>
+                      </div>
+                      <div>
+                        <v-slide-x-transition>
+                          <div class="bgtext px-1 py-1">
+                            <span>{{ formatRole(player) }}</span>
+                          </div>
+                        </v-slide-x-transition>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </v-hover>
             </v-badge>
           </v-badge>
-          <div>
-            <v-btn icon class="white--text" @click="toggleVideo(player)">
-              <v-icon>mdi-stop</v-icon>
-            </v-btn>
-            <v-btn v-if="canCheckRole(player)" icon class="white--text" @click="checkRole(player)">
-              <v-icon>mdi-magnify</v-icon>
-            </v-btn>
-            <v-btn
-              v-if="canVoteForKill(player)"
-              icon
-              @click="voteForKill(player)"
-              class="error--text white"
-            >
-              <v-icon>mdi-axe</v-icon>
-            </v-btn>
-            <v-btn v-if="canHeal(player)" icon @click="heal(player)" class="primary--text white">
-              <v-icon>mdi-bottle-tonic-plus</v-icon>
-            </v-btn>
-            <v-btn
-              v-if="canNomination(player)"
-              icon
-              @click="nomination(player)"
-              class="primary--text white"
-            >
-              <v-icon>mdi-account-alert</v-icon>
-            </v-btn>
-            <v-btn
-              v-if="canVoteForExile(player)"
-              icon
-              @click="voteForExile(player)"
-              class="primary--text white"
-            >
-              <v-icon>mdi-account-check</v-icon>
-            </v-btn>
-            <p>{{ formatRole(player) }}</p>
-          </div>
         </template>
       </v-col>
     </v-row>
@@ -112,6 +220,7 @@ export default {
         }
       ]
     },
+    list: null,
     room: null,
     peerConnections: [],
     time: '00:00',
@@ -125,7 +234,11 @@ export default {
     nominateIndex: 1,
     duration: 0,
     gameSteps: [],
-    gameInfo: {}
+    gameInfo: {},
+    dialog: {
+      value: false,
+      displayName: ''
+    }
   }),
   computed: {
     getPlayerStreams() {
@@ -148,7 +261,9 @@ export default {
       this.time = time
     },
     getRole({uuid, role}) {
+      this.$set(this.findPc(uuid), 'isVisibleRole', false)
       this.$set(this.findPc(uuid), 'role', role)
+      // this.$set(this.findPc(uuid), 'displayName', role)
     },
     voteForKill({fromId, toId}) {
       this.peerConnections.forEach(pc => {
@@ -188,6 +303,9 @@ export default {
     secondVoting(players) {
       this.secondVoting(players)
     },
+    updateSettings({id, displayName}) {
+      this.$set(this.findPc(id), 'displayName', displayName)
+    },
     setGameInfo(info) {
       this.gameInfo = info
     },
@@ -221,8 +339,7 @@ export default {
       this.$socket.emit('resetGameDay', {room: this.room})
       this.peerConnections.forEach(pc => {
         this.$set(pc, 'isAlive', true)
-        this.$set(pc, 'isVisibleRole', false)
-        this.$set(pc, 'role', undefined)
+        this.$set(pc, 'isVisibleRole', true)
       })
       this.isSecondVoting = false
       this.gameIsStarted = false
@@ -231,20 +348,21 @@ export default {
       alert('ROOM IS FOOL')
       this.$router.push('/')
     },
-    join({uuid: peerUuid, displayName}) {
-      this.setUpPeer(peerUuid, displayName)
+    join(settings) {
+      const {displayName} = this.findPc(this.$socket.id)
+      this.setUpPeer(settings)
       this.$socket.emit('createOffer', {
-        displayName: this.$socket.id,
-        uuid: this.$socket.id,
-        dest: peerUuid,
+        id: this.$socket.id,
+        displayName,
+        dest: settings.id,
         room: this.room
       })
     },
-    createOffer({uuid: peerUuid, displayName}) {
-      this.setUpPeer(peerUuid, displayName)
-      this.findPc(peerUuid)
+    createOffer(settings) {
+      this.setUpPeer(settings)
+      this.findPc(settings.id)
         .pc.createOffer()
-        .then(description => this.createdDescription(description, peerUuid))
+        .then(description => this.createdDescription(description, settings.id))
         .catch(this.errorHandler)
     },
     description({uuid: peerUuid, sdp}) {
@@ -316,7 +434,6 @@ export default {
     gotStream(stream) {
       console.log('Adding local stream.')
       this.peerConnections.push({
-        displayName: this.$socket.id,
         stream,
         id: this.$socket.id,
         room: this.room,
@@ -329,29 +446,28 @@ export default {
         room: this.room
       })
       this.$socket.emit('join', {
-        displayName: this.$socket.id,
-        uuid: this.$socket.id,
+        id: this.$socket.id,
         room: this.room
       })
       // this.$socket.emit('test')
     },
-    setUpPeer(peerUuid, displayName) {
+    setUpPeer({id, displayName}) {
       console.log('SET UP PEER')
       const {stream} = this.findPc(this.$socket.id)
       this.peerConnections.push({
-        displayName,
         pc: new RTCPeerConnection(this.pcConfig),
-        id: peerUuid,
+        id,
+        displayName,
         room: this.room,
         killPlayers: [],
         votePlayers: [],
         isAlive: true,
         nominateIndex: 0
       })
-      const existPc = this.findPc(peerUuid)
-      existPc.pc.onicecandidate = event => this.gotIceCandidate(event, peerUuid)
-      existPc.pc.onaddstream = event => this.handleRemoteStreamAdded(event, peerUuid)
-      existPc.pc.oniceconnectionstatechange = event => this.checkPeerDisconnect(event, peerUuid)
+      const existPc = this.findPc(id)
+      existPc.pc.onicecandidate = event => this.gotIceCandidate(event, id)
+      existPc.pc.onaddstream = event => this.handleRemoteStreamAdded(event, id)
+      existPc.pc.oniceconnectionstatechange = event => this.checkPeerDisconnect(event, id)
       existPc.pc.addStream(stream)
     },
     createdDescription(description, uuid) {
@@ -512,13 +628,13 @@ export default {
         })
         this.gameSteps.splice(-1, 0, ...this.gameVoting())
       } else {
-        const {id} = maxVotePlayers[0]
+        const {id, displayName} = maxVotePlayers[0]
         this.gameSteps.splice(
           -1,
           0,
           () => {
             this.duration = duration
-            this.setGameInfo({text: `Last word ${id}`, type: 'last_word'})
+            this.setGameInfo({text: `Last word ${displayName}`, type: 'last_word'})
           },
           () => {
             this.$socket.emit('kill', {
@@ -594,6 +710,15 @@ export default {
     badgeContent(player) {
       return player.killPlayers.length || player.votePlayers.length
     },
+    getListPlayers(player) {
+      const {role} = this.findPc(this.$socket.id)
+
+      if (['boss', 'mafia'].includes(role) && player.killPlayers.length) {
+        return player.killPlayers
+      } else {
+        return player.votePlayers
+      }
+    },
 
     secondVoting(players) {
       this.nominateIndex = 1
@@ -613,6 +738,7 @@ export default {
     },
     startGame() {
       this.$socket.emit('startGame', {room: this.room})
+      this.setGameInfo({text: 'Start game', type: 'start'})
       this.gameSteps = [...this.randezvous()]
       // this.gameSteps = [...this.gameDay()]
       this.nextStep(this.gameSteps[0], 5000)
@@ -643,7 +769,7 @@ export default {
       const result = [
         ...this.peerConnections.map(player => () => {
           this.duration = duration
-          this.setGameInfo({text: player.id, type: 'randezvous'})
+          this.setGameInfo({text: player.displayName, type: 'randezvous'})
         }),
         () => {
           this.gameSteps.push(...this.gameNight())
@@ -689,7 +815,7 @@ export default {
             .forEach(player => {
               this.gameSteps.splice(1, 0, () => {
                 this.duration = duration
-                this.setGameInfo({text: player.id, type: 'nomination', active: player.id})
+                this.setGameInfo({text: player.displayName, type: 'nomination', active: player.id})
               })
             })
         },
@@ -709,7 +835,7 @@ export default {
             .forEach(player => {
               this.gameSteps.splice(-4, 0, () => {
                 this.duration = duration
-                this.setGameInfo({text: `explanation ${player.id}`, type: 'explanation'})
+                this.setGameInfo({text: `explanation ${player.displayName}`, type: 'explanation'})
               })
             })
         },
@@ -747,6 +873,18 @@ export default {
       }
       return 'undefined'
     },
+    openDialog({displayName}) {
+      this.dialog.value = true
+      this.dialog.displayName = displayName
+    },
+    updateSettings() {
+      this.dialog.value = false
+      this.$socket.emit('updateSettings', {
+        ...this.dialog,
+        id: this.$socket.id,
+        room: this.room
+      })
+    },
     nextStep(f, duration = 5000) {
       this.duration = duration
       this.timer = setInterval(() => {
@@ -775,3 +913,13 @@ export default {
   }
 }
 </script>
+
+<style lang="sass">
+.pointer
+  &:hover
+    cursor: pointer
+
+.bgtext
+  background: rgba(0, 0, 0, .8)
+  border-radius: 10px
+</style>

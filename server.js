@@ -53,10 +53,10 @@ io.on('connect', socket => {
     }
   })
 
-  socket.on('createOffer', ({uuid, dest, displayName}) => {
+  socket.on('createOffer', ({id, dest, displayName}) => {
     socket.to(dest).emit('createOffer', {
-      displayName,
-      uuid
+      id,
+      displayName
     })
   })
 
@@ -89,7 +89,7 @@ io.on('connect', socket => {
   // })
 
   socket.on('startGame', ({room}) => {
-    const gameRoles = ['boss', 'citizen', 'doctor', 'detective', 'mafia']
+    const gameRoles = ['citizen', 'boss', 'doctor', 'detective', 'mafia']
     const players = playersInRoom(room)
 
     players.forEach(uuid => {
@@ -120,6 +120,10 @@ io.on('connect', socket => {
 
   socket.on('secondVoting', ({room, players}) => {
     socket.to(room).emit('secondVoting', players)
+  })
+
+  socket.on('updateSettings', settings => {
+    io.to(settings.room).emit('updateSettings', settings)
   })
 
   socket.on('time', ({room, time}) => {
