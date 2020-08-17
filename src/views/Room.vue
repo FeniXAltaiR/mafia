@@ -39,7 +39,7 @@
         </v-row>
       </v-col>
     </v-row>
-    <v-row class="align-center flex-wrap px-2">
+    <v-row class="align-center flex-wrap px-2 justify-center">
       <v-col md="3" sm="6" v-for="player in getPlayerStreams" :key="player.id">
         <template v-if="player.stream">
           <v-badge
@@ -75,7 +75,12 @@
                     <div class="d-flex justify-space-between">
                       <div>
                         <v-slide-x-transition>
-                          <v-btn icon class="white--text" @click="toggleVideo(player)" v-if="hover">
+                          <v-btn
+                            icon
+                            class="white--text"
+                            @click="toggleVideo(player)"
+                            v-if="hover && canSeeToggleVideo(player)"
+                          >
                             <v-icon>mdi-stop</v-icon>
                           </v-btn>
                         </v-slide-x-transition>
@@ -247,9 +252,6 @@ export default {
   },
 
   sockets: {
-    connect() {
-      console.log('CONNECT:', this.$socket.id)
-    },
     test(msg) {
       console.dir(msg)
     },
@@ -366,7 +368,7 @@ export default {
         .catch(this.errorHandler)
     },
     description({uuid: peerUuid, sdp}) {
-      console.log('SDP_TYPE', sdp.type)
+      // console.log('SDP_TYPE', sdp.type)
       this.findPc(peerUuid)
         .pc.setRemoteDescription(new RTCSessionDescription(sdp))
         .then(() => {
@@ -385,14 +387,14 @@ export default {
         .pc.addIceCandidate(new RTCIceCandidate(ice))
         .catch(this.errorHandler)
     },
-    toggleVideo(id) {
+    toggleVideo({id, enabled}) {
       const {stream: existStream} = this.findPc(id)
 
       if (existStream) {
         const videoTracks = existStream.getVideoTracks()
 
         videoTracks.forEach(track => {
-          track.enabled = !track.enabled
+          track.enabled = enabled
         })
       }
     },
@@ -432,7 +434,7 @@ export default {
       // }
     },
     gotStream(stream) {
-      console.log('Adding local stream.')
+      // console.log('Adding local stream.')
       this.peerConnections.push({
         stream,
         id: this.$socket.id,
@@ -452,7 +454,7 @@ export default {
       // this.$socket.emit('test')
     },
     setUpPeer({id, displayName}) {
-      console.log('SET UP PEER')
+      // console.log('SET UP PEER')
       const {stream} = this.findPc(this.$socket.id)
       this.peerConnections.push({
         pc: new RTCPeerConnection(this.pcConfig),
@@ -471,7 +473,7 @@ export default {
       existPc.pc.addStream(stream)
     },
     createdDescription(description, uuid) {
-      console.log('got description', uuid)
+      // console.log('got description', uuid)
 
       this.findPc(uuid)
         .pc.setLocalDescription(description)
@@ -486,12 +488,12 @@ export default {
         .catch(this.errorHandler)
     },
     handleRemoteStreamAdded(event, peerUuid) {
-      console.log('Remote stream added.', peerUuid)
+      // console.log('Remote stream added.', peerUuid)
       this.$set(this.findPc(peerUuid), 'stream', event.stream)
     },
     gotIceCandidate(event) {
       if (event.candidate != null) {
-        console.log('candidate')
+        // console.log('candidate')
         this.$socket.emit('iceCandidate', {
           ice: event.candidate,
           uuid: this.$socket.id,
@@ -541,9 +543,15 @@ export default {
     findPc(id) {
       return this.peerConnections.find(pc => pc.id === id)
     },
+
+    canSeeToggleVideo(player) {
+      return player.id === this.$socket.id || this.isInitiator
+    },
     toggleVideo({id, room}) {
-      console.log(id, room)
-      this.$socket.emit('toggleVideo', {id, room})
+      // console.log(id, room)
+      const {stream} = this.findPc(id)
+      const track = stream.getVideoTracks()[0]
+      this.$socket.emit('toggleVideo', {id, room, enabled: !track.enabled})
     },
 
     canCheckRole({id}) {

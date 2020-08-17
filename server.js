@@ -71,8 +71,8 @@ io.on('connect', socket => {
     socket.to(message.room).emit('iceCandidate', message)
   })
 
-  socket.on('toggleVideo', ({id, room}) => {
-    io.in(room).emit('toggleVideo', id)
+  socket.on('toggleVideo', ({id, room, enabled}) => {
+    io.in(room).emit('toggleVideo', {id, enabled})
     // socket.emit('toggleVideo', id)
     // io.emit('toggleVideo', id)
   })
