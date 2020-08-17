@@ -36,6 +36,15 @@
           >
             <v-icon>mdi-plus</v-icon>
           </v-btn>
+          <v-btn
+            v-if="gameIsStarted && isInitiator"
+            icon
+            small
+            @click="goToNextStep"
+            class="white--text"
+          >
+            <v-icon>mdi-skip-next</v-icon>
+          </v-btn>
         </v-row>
       </v-col>
     </v-row>
@@ -935,6 +944,9 @@ export default {
         id: this.$socket.id,
         room: this.room
       })
+    },
+    goToNextStep() {
+      this.duration = 0
     },
     nextStep(f, duration = 5000) {
       this.duration = duration
