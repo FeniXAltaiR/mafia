@@ -64,7 +64,6 @@
                 <div>
                   <video
                     :srcObject.prop="player.stream"
-                    muted
                     autoplay
                     style="max-height: calc((100vh - 120px - 16px) / 3); max-width: 100%; border-radius: 8px; border: 2px solid grey"
                   ></video>
@@ -74,16 +73,30 @@
                   >
                     <div class="d-flex justify-space-between">
                       <div>
-                        <v-slide-x-transition>
-                          <v-btn
-                            icon
-                            class="white--text"
-                            @click="toggleVideo(player)"
-                            v-if="hover && canSeeToggleVideo(player)"
-                          >
-                            <v-icon>mdi-stop</v-icon>
-                          </v-btn>
-                        </v-slide-x-transition>
+                        <div>
+                          <v-slide-x-transition>
+                            <v-btn
+                              icon
+                              class="white--text"
+                              @click="toggleVideo(player)"
+                              v-if="hover && canSeeToggleVideo(player)"
+                            >
+                              <v-icon>mdi-video</v-icon>
+                            </v-btn>
+                          </v-slide-x-transition>
+                        </div>
+                        <div>
+                          <v-slide-x-transition>
+                            <v-btn
+                              icon
+                              class="white--text"
+                              @click="toggleAudio(player)"
+                              v-if="hover && canSeeToggleAudio(player)"
+                            >
+                              <v-icon>mdi-volume-high</v-icon>
+                            </v-btn>
+                          </v-slide-x-transition>
+                        </div>
                         <div>
                           <v-dialog v-model="dialog.value" persistent max-width="600px">
                             <template v-slot:activator="{on}">
@@ -387,14 +400,25 @@ export default {
         .pc.addIceCandidate(new RTCIceCandidate(ice))
         .catch(this.errorHandler)
     },
-    toggleVideo({id, enabled}) {
+    toggleVideo({id, state}) {
       const {stream: existStream} = this.findPc(id)
 
       if (existStream) {
         const videoTracks = existStream.getVideoTracks()
 
         videoTracks.forEach(track => {
-          track.enabled = enabled
+          track.enabled = state
+        })
+      }
+    },
+    toggleAudio({id, state}) {
+      const {stream: existStream} = this.findPc(id)
+
+      if (existStream) {
+        const audioTracks = existStream.getAudioTracks()
+
+        audioTracks.forEach(track => {
+          track.enabled = state
         })
       }
     },
@@ -545,13 +569,31 @@ export default {
     },
 
     canSeeToggleVideo(player) {
-      return player.id === this.$socket.id || this.isInitiator
+      return (
+        player.stream.getVideoTracks()[0] && (player.id === this.$socket.id || this.isInitiator)
+      )
     },
-    toggleVideo({id, room}) {
+    toggleVideo({id, room, state = null}) {
       // console.log(id, room)
       const {stream} = this.findPc(id)
       const track = stream.getVideoTracks()[0]
-      this.$socket.emit('toggleVideo', {id, room, enabled: !track.enabled})
+      if (track) {
+        this.$socket.emit('toggleVideo', {id, room, state: state ?? !track.enabled})
+      }
+    },
+
+    canSeeToggleAudio(player) {
+      return (
+        player.stream.getAudioTracks()[0] && (player.id === this.$socket.id || this.isInitiator)
+      )
+    },
+    toggleAudio({id, room, state = null}) {
+      // console.log(id, room)
+      const {stream} = this.findPc(id)
+      const track = stream.getAudioTracks()[0]
+      if (track) {
+        this.$socket.emit('toggleAudio', {id, room, state: state ?? !track.enabled})
+      }
     },
 
     canCheckRole({id}) {
@@ -649,7 +691,8 @@ export default {
               id,
               room: this.room
             })
-            this.toggleVideo({id, room: this.room})
+            this.toggleVideo({id, room: this.room, state: false})
+            this.toggleAudio({id, room: this.room, state: false})
           }
         )
       }
@@ -685,7 +728,8 @@ export default {
           id,
           room: this.room
         })
-        this.toggleVideo({id, room: this.room})
+        this.toggleVideo({id, room: this.room, state: false})
+        this.toggleAudio({id, room: this.room, state: false})
       }
     },
 
@@ -756,10 +800,9 @@ export default {
       this.isPause = !this.isPause
     },
     endGame() {
-      this.peerConnections.forEach(pc => {
-        if (!pc.isAlive) {
-          this.toggleVideo(pc)
-        }
+      this.peerConnections.forEach(({id, room}) => {
+        this.toggleVideo({id, room, state: true})
+        this.toggleAudio({id, room, state: true})
       })
       this.$socket.emit('endGame', {room: this.room})
       this.setGameInfo({text: 'Game over', type: 'end'})
