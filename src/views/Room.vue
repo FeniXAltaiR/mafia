@@ -207,10 +207,15 @@
                       </div>
                     </div>
                     <div class="d-flex justify-space-between align-end">
-                      <div>
+                      <div class="d-flex align-end">
                         <div class="bgtext px-1 py-1">
                           <span>{{ findPc(player.id).displayName }}</span>
                         </div>
+                        <v-slide-y-reverse-transition>
+                          <v-icon v-if="activePlayer(player)" class="primary--text ml-2"
+                            >mdi-chat-alert</v-icon
+                          >
+                        </v-slide-y-reverse-transition>
                       </div>
                       <div>
                         <v-slide-x-transition>
@@ -693,7 +698,7 @@ export default {
           0,
           () => {
             this.duration = duration
-            this.setGameInfo({text: `Last word ${displayName}`, type: 'last_word'})
+            this.setGameInfo({text: `Last word ${displayName}`, type: 'last_word', active: id})
           },
           () => {
             this.$socket.emit('kill', {
@@ -825,11 +830,14 @@ export default {
         room: this.room
       })
     },
+    activePlayer(player) {
+      return player.role && player.id === this.gameInfo.active
+    },
     randezvous(duration = 5000) {
       const result = [
         ...this.peerConnections.map(player => () => {
           this.duration = duration
-          this.setGameInfo({text: player.displayName, type: 'randezvous'})
+          this.setGameInfo({text: player.displayName, type: 'randezvous', active: player.id})
         }),
         () => {
           this.gameSteps.push(...this.gameNight())
@@ -895,7 +903,11 @@ export default {
             .forEach(player => {
               this.gameSteps.splice(-4, 0, () => {
                 this.duration = duration
-                this.setGameInfo({text: `explanation ${player.displayName}`, type: 'explanation'})
+                this.setGameInfo({
+                  text: `explanation ${player.displayName}`,
+                  type: 'explanation',
+                  active: player.id
+                })
               })
             })
         },
