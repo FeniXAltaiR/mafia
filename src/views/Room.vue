@@ -779,7 +779,9 @@ export default {
       const {role} = this.findPc(this.$socket.id)
 
       return (
-        (['boss', 'mafia'].includes(role) && player.killPlayers.length) || player.votePlayers.length
+        this.gameInfo.type !== 'exile' &&
+        ((['boss', 'mafia'].includes(role) && player.killPlayers.length) ||
+          player.votePlayers.length)
       )
     },
     badgeContent(player) {
