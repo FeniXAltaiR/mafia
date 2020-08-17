@@ -217,7 +217,12 @@
                           >
                         </v-slide-y-reverse-transition>
                       </div>
-                      <div>
+                      <div class="d-flex align-end">
+                        <v-slide-y-reverse-transition>
+                          <v-icon v-if="player.isDeadLastRound" class="error--text ml-2"
+                            >mdi-emoticon-dead</v-icon
+                          >
+                        </v-slide-y-reverse-transition>
                         <v-slide-x-transition>
                           <div class="bgtext px-1 py-1">
                             <span>{{ formatRole(player) }}</span>
@@ -323,6 +328,7 @@ export default {
     },
     kill({id}) {
       this.$set(this.findPc(id), 'isAlive', false)
+      this.$set(this.findPc(id), 'isDeadLastRound', true)
     },
     nomination({id}) {
       this.$set(this.findPc(id), 'isNominate', true)
@@ -355,6 +361,7 @@ export default {
         this.$set(pc, 'isNominate', false)
         this.$set(pc, 'nominateIndex', 0)
         this.$set(pc, 'votePlayers', [])
+        this.$set(pc, 'isDeadLastRound', false)
       })
       this.nominateIndex = 1
       this.canNominate = true
@@ -701,12 +708,14 @@ export default {
             this.setGameInfo({text: `Last word ${displayName}`, type: 'last_word', active: id})
           },
           () => {
+            this.duration = duration
             this.$socket.emit('kill', {
               id,
               room: this.room
             })
             this.toggleVideo({id, room: this.room, state: false})
             this.toggleAudio({id, room: this.room, state: false})
+            this.setGameInfo({text: 'Prepare to the night'})
           }
         )
       }

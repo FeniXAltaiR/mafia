@@ -95,7 +95,7 @@ io.on('connect', socket => {
   // })
 
   socket.on('startGame', ({room}) => {
-    const gameRoles = ['citizen', 'boss', 'doctor', 'detective', 'mafia']
+    const gameRoles = ['boss', 'citizen', 'doctor', 'detective', 'mafia']
     const players = playersInRoom(room)
 
     players.forEach(uuid => {
