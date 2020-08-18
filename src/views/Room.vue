@@ -45,6 +45,15 @@
           >
             <v-icon>mdi-skip-next</v-icon>
           </v-btn>
+          <v-btn
+            v-if="!gameIsStarted && isInitiator"
+            icon
+            small
+            @click="sortPlayers"
+            class="white--text"
+          >
+            <v-icon>mdi-update</v-icon>
+          </v-btn>
         </v-row>
       </v-col>
     </v-row>
@@ -56,7 +65,7 @@
     >
       <v-col md="3" sm="6" v-for="player in getPlayerStreams" :key="player.id">
         <template v-if="player.stream">
-          <v-row class="justify-center px-1">
+          <v-row class="justify-center px-2">
             <v-badge
               color="primary"
               right
@@ -343,6 +352,16 @@ export default {
     time({time}) {
       this.time = time
     },
+    sortPlayers({players}) {
+      console.log(players)
+      players.forEach(player => {
+        this.$set(this.findPc(player.id), 'order', player.index)
+      })
+      this.peerConnections.sort((playerA, playerB) => (playerA.order > playerB.order ? 1 : -1))
+      this.peerConnections.forEach(pc => {
+        this.$delete(pc, 'order')
+      })
+    },
     getRole({uuid, role}) {
       this.$set(this.findPc(uuid), 'isVisibleRole', false)
       this.$set(this.findPc(uuid), 'role', role)
@@ -610,6 +629,9 @@ export default {
       console.log(`connection with peer ${peerUuid} ${state}`)
       if (['failed', 'closed', 'disconnected'].includes(state)) {
         console.log('DELETE PEER', peerUuid)
+        if (this.isInitiator) {
+          this.isPause = true
+        }
         this.peerConnections = this.peerConnections.filter(pc => pc.id !== peerUuid)
       }
     },
@@ -1028,6 +1050,17 @@ export default {
         ...this.dialog,
         id: this.$socket.id,
         room: this.room
+      })
+    },
+    sortPlayers() {
+      const numbers = this.peerConnections
+        .map((pc, index) => index)
+        .sort(() => (Math.random() > 0.5 ? 1 : -1))
+      const players = this.peerConnections.map(({id}) => ({index: numbers.shift(), id}))
+
+      this.$socket.emit('sortPlayers', {
+        room: this.room,
+        players
       })
     },
     goToNextStep() {

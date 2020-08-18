@@ -92,21 +92,27 @@ io.on('connect', socket => {
   // })
 
   socket.on('startGame', ({room}) => {
-    const gameRoles = ['boss', 'citizen', 'doctor', 'detective', 'mafia']
+    const gameRoles = ['mafia', 'boss', 'citizen', 'doctor', 'detective', 'mafia']
     const players = playersInRoom(room)
 
-    players.forEach(uuid => {
-      const role = gameRoles.pop() || 'citizen'
-      io.to(room).emit('getRole', {
-        uuid,
-        role
+    players
+      .sort(() => (Math.random() >= 0.5 ? 1 : -1))
+      .forEach(uuid => {
+        const role = gameRoles.pop() || 'citizen'
+        io.to(room).emit('getRole', {
+          uuid,
+          role
+        })
       })
-    })
     socket.to(room).emit('startGame')
   })
 
   socket.on('setGameInfo', info => {
     socket.to(info.room).emit('setGameInfo', info)
+  })
+
+  socket.on('sortPlayers', ({room, players}) => {
+    io.to(room).emit('sortPlayers', {players})
   })
 
   socket.on('resetGameNight', ({room}) => {
