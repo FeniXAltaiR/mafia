@@ -48,7 +48,12 @@
         </v-row>
       </v-col>
     </v-row>
-    <v-row class="align-center flex-wrap px-2 justify-center">
+    <draggable
+      tag="v-row"
+      v-model="peerConnections"
+      ghostClass="ghost"
+      class="align-center flex-wrap px-2 justify-center"
+    >
       <v-col md="3" sm="6" v-for="player in getPlayerStreams" :key="player.id">
         <template v-if="player.stream">
           <v-badge
@@ -209,6 +214,7 @@
                     <div class="d-flex justify-space-between align-end">
                       <div class="d-flex align-end">
                         <div class="bgtext px-1 py-1">
+                          <span>{{ findIndexPc(player.id) + 1 }}. </span>
                           <span>{{ findPc(player.id).displayName }}</span>
                         </div>
                         <v-slide-y-reverse-transition>
@@ -237,14 +243,19 @@
           </v-badge>
         </template>
       </v-col>
-    </v-row>
+    </draggable>
   </div>
 </template>
 
 <script>
 import moment from 'moment'
+import draggable from 'vuedraggable'
 
 export default {
+  components: {
+    draggable
+  },
+
   data: () => ({
     turnReady: null,
     pcConfig: {
@@ -257,7 +268,6 @@ export default {
         }
       ]
     },
-    list: null,
     room: null,
     peerConnections: [],
     time: '00:00',
@@ -587,6 +597,9 @@ export default {
     },
     findPc(id) {
       return this.peerConnections.find(pc => pc.id === id)
+    },
+    findIndexPc(id) {
+      return this.peerConnections.findIndex(pc => pc.id === id)
     },
 
     canSeeToggleVideo(player) {
@@ -1007,5 +1020,10 @@ export default {
 
 .bgtext
   background: rgba(0, 0, 0, .8)
+  border-radius: 10px
+
+.ghost
+  opacity: 0.5
+  background: #0079BF
   border-radius: 10px
 </style>
