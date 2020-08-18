@@ -56,191 +56,230 @@
     >
       <v-col md="3" sm="6" v-for="player in getPlayerStreams" :key="player.id">
         <template v-if="player.stream">
-          <v-badge
-            color="primary"
-            right
-            bottom
-            :content="player.nominateIndex"
-            :value="player.nominateIndex"
-          >
-            <v-badge color="error" :value="canSeeBadge(player)">
-              <template v-slot:badge>
-                <v-tooltip left>
-                  <template v-slot:activator="{on}">
-                    <span class="pointer" v-on="on">{{ badgeContent(player) }}</span>
-                  </template>
-                  <div v-for="id in getListPlayers(player)" :key="id">
-                    <span>{{ findPc(id).displayName }}</span>
-                  </div>
-                </v-tooltip>
-              </template>
-              <v-hover v-slot:default="{hover}" open-delay="200">
-                <div>
-                  <video
-                    :srcObject.prop="player.stream"
-                    autoplay
-                    style="max-height: calc((100vh - 120px - 16px) / 3); max-width: 100%; border-radius: 8px; border: 2px solid grey"
-                  ></video>
-                  <div
-                    class="d-flex px-2 pb-3 pt-1 flex-column justify-space-between white--text"
-                    style="height: 100%; width: 100%; position: absolute; top: 0; border-radius: 8px;"
-                  >
-                    <div class="d-flex justify-space-between">
-                      <div>
-                        <div>
-                          <v-slide-x-transition>
-                            <v-btn
-                              icon
-                              class="white--text"
-                              @click="toggleVideo(player)"
-                              v-if="hover && canSeeToggleVideo(player)"
-                            >
-                              <v-icon>mdi-video</v-icon>
-                            </v-btn>
-                          </v-slide-x-transition>
-                        </div>
-                        <div>
-                          <v-slide-x-transition>
-                            <v-btn
-                              icon
-                              class="white--text"
-                              @click="toggleAudio(player)"
-                              v-if="hover && canSeeToggleAudio(player)"
-                            >
-                              <v-icon>mdi-volume-high</v-icon>
-                            </v-btn>
-                          </v-slide-x-transition>
-                        </div>
-                        <div>
-                          <v-dialog v-model="dialog.value" persistent max-width="600px">
-                            <template v-slot:activator="{on}">
-                              <v-slide-x-transition>
-                                <v-btn
-                                  v-on="on"
-                                  v-if="hover && player.id === $socket.id"
-                                  icon
-                                  class="white--text"
-                                  @click="openDialog(player)"
-                                >
-                                  <v-icon small>mdi-cog</v-icon>
-                                </v-btn>
-                              </v-slide-x-transition>
-                            </template>
-                            <v-card>
-                              <v-card-title>
-                                <span class="headline">Settings</span>
-                              </v-card-title>
-                              <v-card-text>
-                                <v-container>
-                                  <v-row>
-                                    <v-col cols="12" md="12">
-                                      <v-text-field
-                                        autofocus
-                                        label="Nickname*"
-                                        v-model="dialog.displayName"
-                                        required
-                                        @keypress.enter="updateSettings"
-                                      ></v-text-field>
-                                    </v-col>
-                                  </v-row>
-                                </v-container>
-                              </v-card-text>
-                              <v-card-actions>
-                                <v-spacer></v-spacer>
-                                <v-btn color="blue darken-1" text @click="dialog.value = false"
-                                  >Close</v-btn
-                                >
-                                <v-btn color="blue darken-1" text @click="updateSettings"
-                                  >Save</v-btn
-                                >
-                              </v-card-actions>
-                            </v-card>
-                          </v-dialog>
-                        </div>
-                      </div>
-                      <div>
-                        <v-slide-x-reverse-transition>
-                          <v-btn
-                            v-if="canCheckRole(player)"
-                            icon
-                            class="white--text"
-                            @click="checkRole(player)"
-                          >
-                            <v-icon>mdi-magnify</v-icon>
-                          </v-btn>
-                        </v-slide-x-reverse-transition>
-                        <v-slide-x-reverse-transition>
-                          <v-btn
-                            v-if="canVoteForKill(player)"
-                            icon
-                            @click="voteForKill(player)"
-                            class="error--text white"
-                          >
-                            <v-icon>mdi-axe</v-icon>
-                          </v-btn>
-                        </v-slide-x-reverse-transition>
-                        <v-slide-x-reverse-transition>
-                          <v-btn
-                            v-if="canHeal(player)"
-                            icon
-                            @click="heal(player)"
-                            class="primary--text white"
-                          >
-                            <v-icon>mdi-bottle-tonic-plus</v-icon>
-                          </v-btn>
-                        </v-slide-x-reverse-transition>
-                        <v-slide-x-reverse-transition>
-                          <v-btn
-                            v-if="canNomination(player)"
-                            icon
-                            @click="nomination(player)"
-                            class="primary--text white"
-                          >
-                            <v-icon>mdi-account-alert</v-icon>
-                          </v-btn>
-                        </v-slide-x-reverse-transition>
-                        <v-slide-x-reverse-transition>
-                          <v-btn
-                            v-if="canVoteForExile(player)"
-                            icon
-                            @click="voteForExile(player)"
-                            class="primary--text white"
-                          >
-                            <v-icon>mdi-account-check</v-icon>
-                          </v-btn>
-                        </v-slide-x-reverse-transition>
-                      </div>
+          <v-row class="justify-center px-1">
+            <v-badge
+              color="primary"
+              right
+              bottom
+              :content="player.nominateIndex"
+              :value="player.nominateIndex"
+            >
+              <v-badge color="error" :value="canSeeBadge(player)">
+                <template v-slot:badge>
+                  <v-tooltip left>
+                    <template v-slot:activator="{on}">
+                      <span class="pointer" v-on="on">{{ badgeContent(player) }}</span>
+                    </template>
+                    <div v-for="id in getListPlayers(player)" :key="id">
+                      <span>{{ findPc(id).displayName }}</span>
                     </div>
-                    <div class="d-flex justify-space-between align-end">
-                      <div class="d-flex align-end">
-                        <div class="bgtext px-1 py-1">
-                          <span>{{ findIndexPc(player.id) + 1 }}. </span>
-                          <span>{{ findPc(player.id).displayName }}</span>
-                        </div>
-                        <v-slide-y-reverse-transition>
-                          <v-icon v-if="activePlayer(player)" class="primary--text ml-2"
-                            >mdi-chat-alert</v-icon
-                          >
-                        </v-slide-y-reverse-transition>
-                      </div>
-                      <div class="d-flex align-end">
-                        <v-slide-y-reverse-transition>
-                          <v-icon v-if="player.isDeadLastRound" class="error--text ml-2"
-                            >mdi-emoticon-dead</v-icon
-                          >
-                        </v-slide-y-reverse-transition>
-                        <v-slide-x-transition>
-                          <div class="bgtext px-1 py-1">
-                            <span>{{ formatRole(player) }}</span>
+                  </v-tooltip>
+                </template>
+                <v-hover v-slot:default="{hover}" open-delay="200">
+                  <div>
+                    <video
+                      :srcObject.prop="player.stream"
+                      autoplay
+                      style="max-height: calc((100vh - 120px - 32px) / 3); max-width: 100%; border-radius: 8px; border: 2px solid grey"
+                    ></video>
+                    <div
+                      v-if="!player.isVideo"
+                      class="d-flex px-2 pb-3 pt-1 align-center justify-center white--text"
+                      style="height: 100%; width: 100%; position: absolute; top: 0; border-radius: 8px;"
+                    >
+                      <h1>{{ findPc(player.id).displayName }}</h1>
+                    </div>
+                    <div
+                      class="d-flex px-2 pb-3 pt-1 flex-column justify-space-between white--text"
+                      style="height: 100%; width: 100%; position: absolute; top: 0; border-radius: 8px;"
+                    >
+                      <v-row class="justify-space-between">
+                        <v-col md="5" class="py-0">
+                          <div>
+                            <v-slide-x-transition>
+                              <v-btn
+                                icon
+                                class="white--text"
+                                @click="toggleVideo(player)"
+                                v-if="hover && canSeeToggleVideo(player)"
+                              >
+                                <v-icon v-if="player.isVideo">mdi-video</v-icon>
+                                <v-icon v-else class="error--text">mdi-video-off</v-icon>
+                              </v-btn>
+                            </v-slide-x-transition>
                           </div>
-                        </v-slide-x-transition>
+                          <div>
+                            <v-slide-x-transition>
+                              <v-btn
+                                icon
+                                class="white--text"
+                                @click="toggleAudio(player)"
+                                v-if="hover && canSeeToggleAudio(player)"
+                              >
+                                <v-icon v-if="player.isAudio">mdi-volume-high</v-icon>
+                                <v-icon v-else class="error--text">mdi-volume-off</v-icon>
+                              </v-btn>
+                            </v-slide-x-transition>
+                          </div>
+                          <div>
+                            <v-dialog v-model="dialog.value" persistent max-width="600px">
+                              <template v-slot:activator="{on}">
+                                <v-slide-x-transition>
+                                  <v-btn
+                                    v-on="on"
+                                    v-if="hover && player.id === $socket.id"
+                                    icon
+                                    class="white--text"
+                                    @click="openDialog(player)"
+                                  >
+                                    <v-icon small>mdi-cog</v-icon>
+                                  </v-btn>
+                                </v-slide-x-transition>
+                              </template>
+                              <v-card>
+                                <v-card-title>
+                                  <span class="headline">Settings</span>
+                                </v-card-title>
+                                <v-card-text>
+                                  <v-container>
+                                    <v-row>
+                                      <v-col cols="12" md="12">
+                                        <v-text-field
+                                          autofocus
+                                          label="Nickname*"
+                                          v-model="dialog.displayName"
+                                          required
+                                          @keypress.enter="updateSettings"
+                                        ></v-text-field>
+                                      </v-col>
+                                    </v-row>
+                                  </v-container>
+                                </v-card-text>
+                                <v-card-actions>
+                                  <v-spacer></v-spacer>
+                                  <v-btn color="blue darken-1" text @click="dialog.value = false"
+                                    >Close</v-btn
+                                  >
+                                  <v-btn color="blue darken-1" text @click="updateSettings"
+                                    >Save</v-btn
+                                  >
+                                </v-card-actions>
+                              </v-card>
+                            </v-dialog>
+                          </div>
+                        </v-col>
+                        <v-col md="2" class="py-0">
+                          <v-row class="justify-center">
+                            <v-slide-y-transition>
+                              <v-icon
+                                v-if="
+                                  hover &&
+                                    !isInitiator &&
+                                    !player.isVideo &&
+                                    player.id !== $socket.id
+                                "
+                                class="error--text"
+                                >mdi-video-off</v-icon
+                              >
+                            </v-slide-y-transition>
+                            <v-slide-y-transition>
+                              <v-icon
+                                v-if="
+                                  hover &&
+                                    !isInitiator &&
+                                    !player.isAudio &&
+                                    player.id !== $socket.id
+                                "
+                                class="error--text"
+                                >mdi-volume-off</v-icon
+                              >
+                            </v-slide-y-transition>
+                          </v-row>
+                        </v-col>
+                        <v-col md="5" class="py-1 d-flex justify-end">
+                          <v-slide-x-reverse-transition>
+                            <v-btn
+                              v-if="canCheckRole(player)"
+                              icon
+                              class="white--text"
+                              @click="checkRole(player)"
+                            >
+                              <v-icon>mdi-magnify</v-icon>
+                            </v-btn>
+                          </v-slide-x-reverse-transition>
+                          <v-slide-x-reverse-transition>
+                            <v-btn
+                              v-if="canVoteForKill(player)"
+                              icon
+                              @click="voteForKill(player)"
+                              class="error--text white"
+                            >
+                              <v-icon>mdi-axe</v-icon>
+                            </v-btn>
+                          </v-slide-x-reverse-transition>
+                          <v-slide-x-reverse-transition>
+                            <v-btn
+                              v-if="canHeal(player)"
+                              icon
+                              @click="heal(player)"
+                              class="primary--text white"
+                            >
+                              <v-icon>mdi-bottle-tonic-plus</v-icon>
+                            </v-btn>
+                          </v-slide-x-reverse-transition>
+                          <v-slide-x-reverse-transition>
+                            <v-btn
+                              v-if="canNomination(player)"
+                              icon
+                              @click="nomination(player)"
+                              class="primary--text white"
+                            >
+                              <v-icon>mdi-account-alert</v-icon>
+                            </v-btn>
+                          </v-slide-x-reverse-transition>
+                          <v-slide-x-reverse-transition>
+                            <v-btn
+                              v-if="canVoteForExile(player)"
+                              icon
+                              @click="voteForExile(player)"
+                              class="primary--text white"
+                            >
+                              <v-icon>mdi-account-check</v-icon>
+                            </v-btn>
+                          </v-slide-x-reverse-transition>
+                        </v-col>
+                      </v-row>
+                      <div class="d-flex justify-space-between align-end">
+                        <div class="d-flex align-end">
+                          <div class="bgtext px-1 py-1">
+                            <span>{{ findIndexPc(player.id) + 1 }}. </span>
+                            <span>{{ findPc(player.id).displayName }}</span>
+                          </div>
+                          <v-slide-y-reverse-transition>
+                            <v-icon v-if="activePlayer(player)" class="primary--text ml-2"
+                              >mdi-chat-alert</v-icon
+                            >
+                          </v-slide-y-reverse-transition>
+                        </div>
+                        <div class="d-flex align-end">
+                          <v-slide-y-reverse-transition>
+                            <v-icon v-if="player.isDeadLastRound" class="error--text ml-2"
+                              >mdi-emoticon-dead</v-icon
+                            >
+                          </v-slide-y-reverse-transition>
+                          <v-slide-x-transition>
+                            <div class="bgtext px-1 py-1">
+                              <span>{{ formatRole(player) }}</span>
+                            </div>
+                          </v-slide-x-transition>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </v-hover>
+                </v-hover>
+              </v-badge>
             </v-badge>
-          </v-badge>
+          </v-row>
         </template>
       </v-col>
     </draggable>
@@ -395,13 +434,15 @@ export default {
       this.$router.push('/')
     },
     join(settings) {
-      const {displayName} = this.findPc(this.$socket.id)
+      const {displayName, isAudio, isVideo} = this.findPc(this.$socket.id)
       this.setUpPeer(settings)
       this.$socket.emit('createOffer', {
         id: this.$socket.id,
         displayName,
         dest: settings.id,
-        room: this.room
+        room: this.room,
+        isAudio,
+        isVideo
       })
     },
     createOffer(settings) {
@@ -432,25 +473,27 @@ export default {
         .catch(this.errorHandler)
     },
     toggleVideo({id, state}) {
-      const {stream: existStream} = this.findPc(id)
+      const player = this.findPc(id)
 
-      if (existStream) {
-        const videoTracks = existStream.getVideoTracks()
+      if (player.stream) {
+        const videoTracks = player.stream.getVideoTracks()
 
         videoTracks.forEach(track => {
           track.enabled = state
         })
+        this.$set(player, 'isVideo', state)
       }
     },
     toggleAudio({id, state}) {
-      const {stream: existStream} = this.findPc(id)
+      const player = this.findPc(id)
 
-      if (existStream) {
-        const audioTracks = existStream.getAudioTracks()
+      if (player.stream) {
+        const audioTracks = player.stream.getAudioTracks()
 
         audioTracks.forEach(track => {
           track.enabled = state
         })
+        this.$set(player, 'isAudio', state)
       }
     },
     message(message) {
@@ -497,18 +540,22 @@ export default {
         killPlayers: [],
         votePlayers: [],
         isAlive: true,
-        nominateIndex: 0
+        nominateIndex: 0,
+        isVideo: true,
+        isAudio: true
       })
       this.$socket.emit('isInitiator', {
         room: this.room
       })
       this.$socket.emit('join', {
         id: this.$socket.id,
-        room: this.room
+        room: this.room,
+        isVideo: true,
+        isAudio: true
       })
       // this.$socket.emit('test')
     },
-    setUpPeer({id, displayName}) {
+    setUpPeer({id, displayName, isAudio, isVideo}) {
       // console.log('SET UP PEER')
       const {stream} = this.findPc(this.$socket.id)
       this.peerConnections.push({
@@ -519,7 +566,9 @@ export default {
         killPlayers: [],
         votePlayers: [],
         isAlive: true,
-        nominateIndex: 0
+        nominateIndex: 0,
+        isVideo,
+        isAudio
       })
       const existPc = this.findPc(id)
       existPc.pc.onicecandidate = event => this.gotIceCandidate(event, id)

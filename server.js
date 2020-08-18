@@ -53,11 +53,8 @@ io.on('connect', socket => {
     }
   })
 
-  socket.on('createOffer', ({id, dest, displayName}) => {
-    socket.to(dest).emit('createOffer', {
-      id,
-      displayName
-    })
+  socket.on('createOffer', ({dest, ...settings}) => {
+    socket.to(dest).emit('createOffer', settings)
   })
 
   socket.on('description', ({uuid, dest, sdp}) => {
