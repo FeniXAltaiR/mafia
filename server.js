@@ -68,6 +68,10 @@ io.on('connect', socket => {
     socket.to(message.room).emit('iceCandidate', message)
   })
 
+  socket.on('updatePlayerInfo', settings => {
+    socket.to(settings.id).emit('updatePlayerInfo', settings)
+  })
+
   socket.on('toggleVideo', ({id, room, state}) => {
     io.in(room).emit('toggleVideo', {id, state})
     // socket.emit('toggleVideo', id)

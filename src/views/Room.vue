@@ -342,6 +342,19 @@ export default {
   },
 
   sockets: {
+    reconnecting() {
+      console.log('reconnecting')
+    },
+    reconnect_attempt() {
+      console.log('reconnect_attempt')
+    },
+    disconnect() {
+      console.log('disconnect')
+      this.peerConnections = []
+    },
+    disconnecting() {
+      console.log('disconnecting')
+    },
     test(msg) {
       console.dir(msg)
     },
@@ -408,6 +421,9 @@ export default {
     updateSettings({id, displayName}) {
       this.$set(this.findPc(id), 'displayName', displayName)
     },
+    updatePlayerInfo(settings) {
+      Object.assign(this.findPc(this.$socket.id), settings)
+    },
     setGameInfo(info) {
       this.gameInfo = info
     },
@@ -446,24 +462,23 @@ export default {
       })
       this.isSecondVoting = false
       this.gameIsStarted = false
+      localStorage.removeItem('id')
     },
     fullRoom() {
       alert('ROOM IS FOOL')
       this.$router.push('/')
     },
     join(settings) {
-      const {displayName, isAudio, isVideo} = this.findPc(this.$socket.id)
+      console.log('JOIN')
+      const {stream, pc, ...mySettings} = this.findPc(this.$socket.id)
       this.setUpPeer(settings)
       this.$socket.emit('createOffer', {
-        id: this.$socket.id,
-        displayName,
         dest: settings.id,
-        room: this.room,
-        isAudio,
-        isVideo
+        ...mySettings
       })
     },
     createOffer(settings) {
+      console.log('CREATE OFFER')
       this.setUpPeer(settings)
       this.findPc(settings.id)
         .pc.createOffer()
@@ -551,9 +566,9 @@ export default {
     },
     gotStream(stream) {
       // console.log('Adding local stream.')
-      this.peerConnections.push({
-        stream,
+      const settings = {
         id: this.$socket.id,
+        ids: [],
         room: this.room,
         killPlayers: [],
         votePlayers: [],
@@ -561,38 +576,44 @@ export default {
         nominateIndex: 0,
         isVideo: true,
         isAudio: true
+      }
+      this.peerConnections.push({
+        stream,
+        ...settings
       })
       this.$socket.emit('isInitiator', {
         room: this.room
       })
       this.$socket.emit('join', {
-        id: this.$socket.id,
-        room: this.room,
-        isVideo: true,
-        isAudio: true
+        ...settings,
+        savedId: localStorage.getItem('id')
       })
+      localStorage.setItem('id', this.$socket.id)
       // this.$socket.emit('test')
     },
-    setUpPeer({id, displayName, isAudio, isVideo}) {
+    setUpPeer({savedId, ...settings}) {
       // console.log('SET UP PEER')
       const {stream} = this.findPc(this.$socket.id)
-      this.peerConnections.push({
-        pc: new RTCPeerConnection(this.pcConfig),
-        id,
-        displayName,
-        room: this.room,
-        killPlayers: [],
-        votePlayers: [],
-        isAlive: true,
-        nominateIndex: 0,
-        isVideo,
-        isAudio
-      })
-      const existPc = this.findPc(id)
-      existPc.pc.onicecandidate = event => this.gotIceCandidate(event, id)
-      existPc.pc.onaddstream = event => this.handleRemoteStreamAdded(event, id)
-      existPc.pc.oniceconnectionstatechange = event => this.checkPeerDisconnect(event, id)
-      existPc.pc.addStream(stream)
+      const player = {
+        ...settings,
+        pc: new RTCPeerConnection(this.pcConfig)
+      }
+      const existPlayer = this.findPc(savedId)
+      if (existPlayer) {
+        existPlayer.ids.push(existPlayer.id)
+        this.$set(existPlayer, 'pc', player.pc)
+        this.$set(existPlayer, 'id', player.id)
+        const {stream, pc, ...restSettings} = this.findPc(player.id)
+        if (this.isInitiator) {
+          this.$socket.emit('updatePlayerInfo', restSettings)
+        }
+      } else {
+        this.peerConnections.push(player)
+      }
+      player.pc.onicecandidate = event => this.gotIceCandidate(event, settings.id)
+      player.pc.onaddstream = event => this.handleRemoteStreamAdded(event, settings.id)
+      player.pc.oniceconnectionstatechange = event => this.checkPeerDisconnect(event, settings.id)
+      player.pc.addStream(stream)
     },
     createdDescription(description, uuid) {
       // console.log('got description', uuid)
@@ -631,7 +652,9 @@ export default {
         if (this.isInitiator) {
           this.isPause = true
         }
-        this.peerConnections = this.peerConnections.filter(pc => pc.id !== peerUuid)
+        this.$delete(this.findPc(peerUuid), 'stream')
+        this.$delete(this.findPc(peerUuid), 'pc')
+        // this.peerConnections = this.peerConnections.filter(pc => pc.id !== peerUuid)
       }
     },
     errorHandler(e) {
@@ -666,10 +689,10 @@ export default {
       }
     },
     findPc(id) {
-      return this.peerConnections.find(pc => pc.id === id)
+      return this.peerConnections.find(pc => pc.id === id || pc.ids.includes(id))
     },
     findIndexPc(id) {
-      return this.peerConnections.findIndex(pc => pc.id === id)
+      return this.peerConnections.findIndex(pc => pc.id === id || pc.ids.includes(id))
     },
 
     canSeeToggleVideo(player) {
@@ -701,12 +724,12 @@ export default {
     },
 
     canCheckRole({id}) {
-      const {role} = this.findPc(this.$socket.id)
+      const {role, isAlive} = this.findPc(this.$socket.id) ?? {}
 
       return (
         this.$socket.id !== id &&
         !this.findPc(id).isVisibleRole &&
-        this.findPc(this.$socket.id).isAlive &&
+        isAlive &&
         ['detective', 'boss'].includes(role) &&
         role === this.gameInfo.type &&
         this.canCheck
@@ -718,8 +741,10 @@ export default {
     },
 
     canNomination({id, isNominate = false, isAlive}) {
+      const {isAlive: meIsAlive} = this.findPc(this.$socket.id) ?? {}
+
       return (
-        this.findPc(this.$socket.id).isAlive &&
+        meIsAlive &&
         this.gameInfo.type === 'nomination' &&
         this.$socket.id !== id &&
         this.$socket.id === this.gameInfo.active &&
@@ -805,13 +830,13 @@ export default {
     },
 
     canVoteForKill({id}) {
-      const {role} = this.findPc(this.$socket.id)
-      const {killPlayers = []} = this.findPc(id)
+      const {role, isAlive} = this.findPc(this.$socket.id) ?? {}
+      const {killPlayers = []} = this.findPc(id) ?? {}
 
       return (
         ['boss', 'mafia'].includes(role) &&
         this.gameInfo.type === 'mafia' &&
-        this.findPc(this.$socket.id).isAlive &&
+        isAlive &&
         !killPlayers.includes(this.$socket.id)
       )
     },
@@ -840,15 +865,11 @@ export default {
     },
 
     canHeal({id}) {
-      const {role} = this.findPc(this.$socket.id)
-      const {isHeal, isHealedLastRound} = this.findPc(id)
+      const {role, isAlive} = this.findPc(this.$socket.id) ?? {}
+      const {isHeal, isHealedLastRound} = this.findPc(id) ?? {}
 
       return (
-        role === 'doctor' &&
-        role === this.gameInfo.type &&
-        this.findPc(this.$socket.id).isAlive &&
-        !isHeal &&
-        !isHealedLastRound
+        role === 'doctor' && role === this.gameInfo.type && isAlive && !isHeal && !isHealedLastRound
       )
     },
     heal({id}) {
@@ -859,7 +880,7 @@ export default {
     },
 
     canSeeBadge(player) {
-      const {role} = this.findPc(this.$socket.id)
+      const {role} = this.findPc(this.$socket.id) ?? {}
 
       return (
         this.gameInfo.type !== 'exile' &&
@@ -871,7 +892,7 @@ export default {
       return player.killPlayers.length || player.votePlayers.length
     },
     getListPlayers(player) {
-      const {role} = this.findPc(this.$socket.id)
+      const {role} = this.findPc(this.$socket.id) ?? {}
 
       if (['boss', 'mafia'].includes(role) && player.killPlayers.length) {
         return player.killPlayers
@@ -924,8 +945,8 @@ export default {
         room: this.room
       })
     },
-    activePlayer(player) {
-      return player.role && player.id === this.gameInfo.active
+    activePlayer({id, ids, role}) {
+      return role && [id, ...ids].includes(this.gameInfo.active)
     },
     randezvous(duration = 5000) {
       const result = [
