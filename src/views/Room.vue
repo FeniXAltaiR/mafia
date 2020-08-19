@@ -353,7 +353,6 @@ export default {
       this.time = time
     },
     sortPlayers({players}) {
-      console.log(players)
       players.forEach(player => {
         this.$set(this.findPc(player.id), 'order', player.index)
       })
