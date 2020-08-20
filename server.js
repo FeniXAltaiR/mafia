@@ -131,6 +131,36 @@ io.on('connect', socket => {
     io.to(room).emit('endGame')
   })
 
+  socket.on('gameLastWord', ({room, id, displayName, duration}) => {
+    socket.to(room).emit('gameLastWord', {id, displayName, duration})
+  })
+
+  socket.on('gameNight', ({room}) => {
+    socket.to(room).emit('gameNight')
+  })
+
+  socket.on('gameDay', ({room}) => {
+    socket.to(room).emit('gameDay')
+  })
+
+  socket.on('gameExplanation', ({room, duration, player}) => {
+    socket.to(room).emit('gameExplanation', {duration, player})
+  })
+
+  socket.on('removeNextStep', ({room}) => {
+    socket.to(room).emit('removeNextStep')
+  })
+
+  socket.on('newInitiator', ({id, gameSteps}) => {
+    socket.to(id).emit('newInitiator', {
+      gameSteps
+    })
+  })
+
+  socket.on('gameVoting', ({room}) => {
+    socket.to(room).emit('gameVoting')
+  })
+
   socket.on('secondVoting', ({room, players}) => {
     socket.to(room).emit('secondVoting', players)
   })
@@ -139,9 +169,10 @@ io.on('connect', socket => {
     io.to(settings.room).emit('updateSettings', settings)
   })
 
-  socket.on('time', ({room, time}) => {
+  socket.on('time', ({room, time, duration}) => {
     socket.to(room).emit('time', {
-      time
+      time,
+      duration
     })
   })
 

@@ -109,6 +109,18 @@
                               <v-btn
                                 icon
                                 class="white--text"
+                                @click="newInitiator(player)"
+                                v-if="hover && isInitiator && player.id !== $socket.id"
+                              >
+                                <v-icon>mdi-dots-vertical</v-icon>
+                              </v-btn>
+                            </v-slide-x-transition>
+                          </div>
+                          <div>
+                            <v-slide-x-transition>
+                              <v-btn
+                                icon
+                                class="white--text"
                                 @click="toggleVideo(player)"
                                 v-if="hover && canSeeToggleVideo(player)"
                               >
@@ -131,50 +143,16 @@
                             </v-slide-x-transition>
                           </div>
                           <div>
-                            <v-dialog v-model="dialog.value" persistent max-width="600px">
-                              <template v-slot:activator="{on}">
-                                <v-slide-x-transition>
-                                  <v-btn
-                                    v-on="on"
-                                    v-if="hover && player.id === $socket.id"
-                                    icon
-                                    class="white--text"
-                                    @click="openDialog(player)"
-                                  >
-                                    <v-icon small>mdi-cog</v-icon>
-                                  </v-btn>
-                                </v-slide-x-transition>
-                              </template>
-                              <v-card>
-                                <v-card-title>
-                                  <span class="headline">Settings</span>
-                                </v-card-title>
-                                <v-card-text>
-                                  <v-container>
-                                    <v-row>
-                                      <v-col cols="12" md="12">
-                                        <v-text-field
-                                          autofocus
-                                          label="Nickname*"
-                                          v-model="dialog.displayName"
-                                          required
-                                          @keypress.enter="updateSettings"
-                                        ></v-text-field>
-                                      </v-col>
-                                    </v-row>
-                                  </v-container>
-                                </v-card-text>
-                                <v-card-actions>
-                                  <v-spacer></v-spacer>
-                                  <v-btn color="blue darken-1" text @click="dialog.value = false"
-                                    >Close</v-btn
-                                  >
-                                  <v-btn color="blue darken-1" text @click="updateSettings"
-                                    >Save</v-btn
-                                  >
-                                </v-card-actions>
-                              </v-card>
-                            </v-dialog>
+                            <v-slide-x-transition>
+                              <v-btn
+                                v-if="hover && player.id === $socket.id"
+                                icon
+                                class="white--text"
+                                @click="openDialog(player)"
+                              >
+                                <v-icon small>mdi-cog</v-icon>
+                              </v-btn>
+                            </v-slide-x-transition>
                           </div>
                         </v-col>
                         <v-col md="2" class="py-0">
@@ -292,6 +270,33 @@
         </template>
       </v-col>
     </draggable>
+    <v-dialog v-model="dialog.value" persistent max-width="600px">
+      <v-card>
+        <v-card-title>
+          <span class="headline">Settings</span>
+        </v-card-title>
+        <v-card-text>
+          <v-container>
+            <v-row>
+              <v-col cols="12" md="12">
+                <v-text-field
+                  autofocus
+                  label="Nickname*"
+                  v-model="dialog.displayName"
+                  required
+                  @keypress.enter="updateSettings"
+                ></v-text-field>
+              </v-col>
+            </v-row>
+          </v-container>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn color="blue darken-1" text @click="dialog.value = false">Close</v-btn>
+          <v-btn color="blue darken-1" text @click="updateSettings">Save</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -362,8 +367,9 @@ export default {
       this.isInitiator = isInitiator
       // console.log('TEST:', id, isInitiator)
     },
-    time({time}) {
+    time({time, duration}) {
       this.time = time
+      this.duration = duration
     },
     sortPlayers({players}) {
       players.forEach(player => {
@@ -415,8 +421,17 @@ export default {
       this.$set(this.findPc(id), 'nominateIndex', this.nominateIndex)
       this.nominateIndex += 1
     },
+    newInitiator() {
+      this.isInitiator = true
+      this.isPause = true
+      this.nextStep(this.gameSteps[0], this.duration)
+    },
+    gameVoting() {
+      this.gameSteps.splice(-1, 0, ...this.gameVoting())
+    },
     secondVoting(players) {
       this.secondVoting(players)
+      this.gameSteps.splice(-1, 0, ...this.gameVoting())
     },
     updateSettings({id, displayName}) {
       this.$set(this.findPc(id), 'displayName', displayName)
@@ -452,6 +467,7 @@ export default {
     },
     startGame() {
       this.gameIsStarted = true
+      this.gameSteps = [...this.randezvous()]
     },
     endGame() {
       this.$socket.emit('resetGameNight', {room: this.room})
@@ -462,7 +478,21 @@ export default {
       })
       this.isSecondVoting = false
       this.gameIsStarted = false
-      localStorage.removeItem('id')
+    },
+    gameLastWord({duration, id, displayName}) {
+      this.gameSteps.splice(-1, 0, ...this.gameLastWord(duration, id, displayName))
+    },
+    gameNight() {
+      this.gameSteps.push(...this.gameNight())
+    },
+    gameDay() {
+      this.gameSteps.push(...this.gameDay())
+    },
+    gameExplanation({duration, player}) {
+      this.gameExplanation({duration, player})
+    },
+    removeNextStep() {
+      this.removeNextStep()
     },
     fullRoom() {
       alert('ROOM IS FOOL')
@@ -801,31 +831,20 @@ export default {
         this.isSecondVoting = true
         const maxVotePlayersIds = maxVotePlayers.map(player => player.id)
         this.secondVoting(maxVotePlayersIds)
+        this.gameSteps.splice(-1, 0, ...this.gameVoting())
         this.$socket.emit('secondVoting', {
           room: this.room,
           players: maxVotePlayersIds
         })
-        this.gameSteps.splice(-1, 0, ...this.gameVoting())
       } else {
         const {id, displayName} = maxVotePlayers[0]
-        this.gameSteps.splice(
-          -1,
-          0,
-          () => {
-            this.duration = duration
-            this.setGameInfo({text: `Last word ${displayName}`, type: 'last_word', active: id})
-          },
-          () => {
-            this.duration = duration
-            this.$socket.emit('kill', {
-              id,
-              room: this.room
-            })
-            this.toggleVideo({id, room: this.room, state: false})
-            this.toggleAudio({id, room: this.room, state: false})
-            this.setGameInfo({text: 'Prepare to the night'})
-          }
-        )
+        this.gameSteps.splice(-1, 0, ...this.gameLastWord({duration, id, displayName}))
+        this.$socket.emit('gameLastWord', {
+          room: this.room,
+          duration,
+          id,
+          displayName
+        })
       }
     },
 
@@ -900,8 +919,15 @@ export default {
         return player.votePlayers
       }
     },
-
+    newInitiator({id}) {
+      this.isInitiator = false
+      clearInterval(this.timer)
+      this.$socket.emit('newInitiator', {
+        id
+      })
+    },
     secondVoting(players) {
+      this.isSecondVoting = true
       this.nominateIndex = 1
       this.peerConnections.forEach(pc => {
         this.$set(pc, 'isNominate', false)
@@ -921,7 +947,6 @@ export default {
       this.$socket.emit('startGame', {room: this.room})
       this.setGameInfo({text: 'Start game', type: 'start'})
       this.gameSteps = [...this.randezvous()]
-      // this.gameSteps = [...this.gameDay()]
       this.nextStep(this.gameSteps[0], 5000)
       this.gameIsStarted = true
     },
@@ -956,6 +981,7 @@ export default {
         }),
         () => {
           this.gameSteps.push(...this.gameNight())
+          this.$socket.emit('gameNight', {room: this.room})
         }
       ]
 
@@ -984,6 +1010,7 @@ export default {
         },
         () => {
           this.gameSteps.push(...this.gameDay())
+          this.$socket.emit('gameDay', {room: this.room})
         }
       ]
     },
@@ -993,19 +1020,21 @@ export default {
         () => {
           this.duration = duration
           this.setGameInfo({text: 'nomination', type: 'nomination'})
-          this.peerConnections
-            .filter(player => player.isAlive)
-            .forEach(player => {
-              this.gameSteps.splice(1, 0, () => {
-                this.duration = duration
-                this.setGameInfo({text: player.displayName, type: 'nomination', active: player.id})
-              })
-            })
         },
-        ...this.gameVoting(),
+        ...this.peerConnections
+          .filter(player => player.isAlive)
+          .map(player => () => {
+            this.duration = duration
+            this.setGameInfo({text: player.displayName, type: 'nomination', active: player.id})
+          }),
+        () => {
+          this.gameSteps.splice(-1, 0, ...this.gameVoting())
+          this.$socket.emit('gameVoting', {room: this.room})
+        },
         () => {
           this.$socket.emit('resetGameDay', {room: this.room})
           this.gameSteps.push(...this.gameNight())
+          this.$socket.emit('gameNight', {room: this.room})
         }
       ]
     },
@@ -1016,13 +1045,11 @@ export default {
             .filter(player => player.isAlive && player.isNominate)
             .sort((playerA, playerB) => (playerA.nominateIndex > playerB.nominateIndex ? 1 : -1))
             .forEach(player => {
-              this.gameSteps.splice(-4, 0, () => {
-                this.duration = duration
-                this.setGameInfo({
-                  text: `explanation ${player.displayName}`,
-                  type: 'explanation',
-                  active: player.id
-                })
+              this.gameExplanation({duration, player})
+              this.$socket.emit('gameExplanation', {
+                room: this.room,
+                duration,
+                player
               })
             })
         },
@@ -1036,6 +1063,34 @@ export default {
         },
         () => {
           this.exile()
+        }
+      ]
+    },
+    gameExplanation({duration, player}) {
+      this.gameSteps.splice(-4, 0, () => {
+        this.duration = duration
+        this.setGameInfo({
+          text: `explanation ${player.displayName}`,
+          type: 'explanation',
+          active: player.id
+        })
+      })
+    },
+    gameLastWord({duration, id, displayName}) {
+      return [
+        () => {
+          this.duration = duration
+          this.setGameInfo({text: `Last word ${displayName}`, type: 'last_word', active: id})
+        },
+        () => {
+          this.duration = duration
+          this.$socket.emit('kill', {
+            id,
+            room: this.room
+          })
+          this.toggleVideo({id, room: this.room, state: false})
+          this.toggleAudio({id, room: this.room, state: false})
+          this.setGameInfo({text: 'Prepare to the night'})
         }
       ]
     },
@@ -1094,6 +1149,7 @@ export default {
           this.time = moment(this.duration).format('mm:ss')
           this.$socket.emit('time', {
             time: this.time,
+            duration: this.duration,
             room: this.room
           })
 
@@ -1104,12 +1160,16 @@ export default {
             } else {
               f()
               clearInterval(this.timer)
-              this.gameSteps.shift()
+              this.removeNextStep()
+              this.$socket.emit('removeNextStep', {room: this.room})
               this.nextStep(this.gameSteps[0], this.duration)
             }
           }
         }
       }, 1000)
+    },
+    removeNextStep() {
+      this.gameSteps.shift()
     }
   }
 }
