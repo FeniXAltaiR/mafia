@@ -105,16 +105,28 @@
                       <v-row class="justify-space-between">
                         <v-col md="5" class="py-0">
                           <div>
-                            <v-slide-x-transition>
-                              <v-btn
-                                icon
-                                class="white--text"
-                                @click="newInitiator(player)"
-                                v-if="hover && isInitiator && player.id !== $socket.id"
-                              >
-                                <v-icon>mdi-dots-vertical</v-icon>
-                              </v-btn>
-                            </v-slide-x-transition>
+                            <v-menu absolute>
+                              <template v-slot:activator="{on}">
+                                <v-slide-x-transition>
+                                  <v-btn
+                                    icon
+                                    v-on="on"
+                                    class="white--text"
+                                    v-if="hover && isInitiator && player.id !== $socket.id"
+                                  >
+                                    <v-icon>mdi-dots-vertical</v-icon>
+                                  </v-btn>
+                                </v-slide-x-transition>
+                              </template>
+                              <v-list dense>
+                                <v-list-item @click="newInitiator(player)">
+                                  <v-list-item-title>Make initiator</v-list-item-title>
+                                </v-list-item>
+                                <v-list-item @click="banPlayer(player)">
+                                  <v-list-item-title>Ban player</v-list-item-title>
+                                </v-list-item>
+                              </v-list>
+                            </v-menu>
                           </div>
                           <div>
                             <v-slide-x-transition>
@@ -494,6 +506,12 @@ export default {
     removeNextStep() {
       this.removeNextStep()
     },
+    banPlayer({id}) {
+      this.peerConnections = this.peerConnections.filter(pc => pc.id !== id)
+      if (this.$socket.id === id) {
+        alert('You had banned')
+      }
+    },
     fullRoom() {
       alert('ROOM IS FOOL')
       this.$router.push('/')
@@ -675,7 +693,7 @@ export default {
       }
     },
     checkPeerDisconnect(event, peerUuid) {
-      const state = this.findPc(peerUuid).pc.iceConnectionState
+      const state = this.findPc(peerUuid)?.pc?.iceConnectionState
       console.log(`connection with peer ${peerUuid} ${state}`)
       if (['failed', 'closed', 'disconnected'].includes(state)) {
         console.log('DELETE PEER', peerUuid)
@@ -846,6 +864,9 @@ export default {
           displayName
         })
       }
+    },
+    banPlayer({id}) {
+      this.$socket.emit('banPlayer', {id, room: this.room})
     },
 
     canVoteForKill({id}) {

@@ -206,6 +206,10 @@ io.on('connect', socket => {
     io.to(room).emit('nomination', {id})
   })
 
+  socket.on('banPlayer', ({id, room}) => {
+    io.to(room).emit('banPlayer', {id})
+  })
+
   socket.on('bye', function() {
     console.log('received bye')
   })
