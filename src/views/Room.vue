@@ -54,6 +54,32 @@
           >
             <v-icon>mdi-update</v-icon>
           </v-btn>
+          <v-btn
+            v-if="gameIsStarted && isInitiator"
+            icon
+            small
+            @click="endGame"
+            class="white--text"
+          >
+            <v-icon>mdi-exit-run</v-icon>
+          </v-btn>
+          <v-menu absolute>
+            <template v-slot:activator="{on}">
+              <v-slide-x-transition>
+                <v-btn icon v-on="on" class="white--text" v-if="!findPc($socket.id)">
+                  <v-icon>mdi-lan-connect</v-icon>
+                </v-btn>
+              </v-slide-x-transition>
+            </template>
+            <v-list dense>
+              <v-list-item @click="init('getUserMedia')">
+                <v-list-item-title>getUserMedia</v-list-item-title>
+              </v-list-item>
+              <v-list-item @click="init('getDisplayMedia')">
+                <v-list-item-title>getDisplayMedia</v-list-item-title>
+              </v-list-item>
+            </v-list>
+          </v-menu>
         </v-row>
       </v-col>
     </v-row>
@@ -596,11 +622,11 @@ export default {
   },
 
   mounted() {
-    this.init()
+    // this.init()
   },
 
   methods: {
-    init() {
+    init(type) {
       const {room} = this.$route.params
       if (room) {
         this.room = room
@@ -608,12 +634,15 @@ export default {
 
       const constraints = {
         video: true,
-        audio: true
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true
+        }
       }
 
-      navigator.mediaDevices
+      navigator.mediaDevices[type](constraints)
         // .getUserMedia(constraints)
-        .getDisplayMedia(constraints)
+        // .getDisplayMedia(constraints)
         .then(this.gotStream)
         .catch(function(e) {
           console.log('getUserMedia() error: ' + e.name)
@@ -650,7 +679,7 @@ export default {
         id: this.$socket.id,
         room: this.room
       })
-      localStorage.setItem('id', this.$socket.id)
+      // localStorage.setItem('id', this.$socket.id)
       // this.$socket.emit('test')
     },
     setUpPeer({savedId, ...settings}) {
