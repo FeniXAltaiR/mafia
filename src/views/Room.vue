@@ -253,6 +253,7 @@
                           <div class="bgtext px-1 py-1">
                             <span>{{ findIndexPc(player.id) + 1 }}. </span>
                             <span>{{ findPc(player.id).displayName }}</span>
+                            <span v-if="findPc(player.id).isInitiator">(Leader)</span>
                           </div>
                           <v-slide-y-reverse-transition>
                             <v-icon v-if="activePlayer(player)" class="primary--text ml-2"
@@ -375,8 +376,12 @@ export default {
     test(msg) {
       console.dir(msg)
     },
-    isInitiator({isInitiator = false}) {
-      this.isInitiator = isInitiator
+    isInitiator({id, isInitiator = false}) {
+      const player = this.findPc(id)
+      this.$set(player, 'isInitiator', isInitiator)
+      if (player.id === this.$socket.id) {
+        this.isInitiator = isInitiator
+      }
       // console.log('TEST:', id, isInitiator)
     },
     time({time, duration}) {
@@ -433,10 +438,17 @@ export default {
       this.$set(this.findPc(id), 'nominateIndex', this.nominateIndex)
       this.nominateIndex += 1
     },
-    newInitiator() {
-      this.isInitiator = true
-      this.isPause = true
-      this.nextStep(this.gameSteps[0], this.duration)
+    newInitiator({id}) {
+      this.peerConnections.forEach(pc => {
+        this.$set(pc, 'isInitiator', pc.id === id)
+      })
+      if (this.$socket.id === id) {
+        this.isInitiator = true
+        this.isPause = true
+        if (this.gameIsStarted) {
+          this.nextStep(this.gameSteps[0], this.duration)
+        }
+      }
     },
     gameVoting() {
       this.gameSteps.splice(-1, 0, ...this.gameVoting())
@@ -479,6 +491,7 @@ export default {
     },
     startGame() {
       this.gameIsStarted = true
+      this.isPause = false
       this.gameSteps = [...this.randezvous()]
     },
     endGame() {
@@ -629,12 +642,13 @@ export default {
         stream,
         ...settings
       })
-      this.$socket.emit('isInitiator', {
-        room: this.room
-      })
       this.$socket.emit('join', {
         ...settings,
         savedId: localStorage.getItem('id')
+      })
+      this.$socket.emit('isInitiator', {
+        id: this.$socket.id,
+        room: this.room
       })
       localStorage.setItem('id', this.$socket.id)
       // this.$socket.emit('test')
@@ -699,6 +713,13 @@ export default {
         console.log('DELETE PEER', peerUuid)
         if (this.isInitiator) {
           this.isPause = true
+        }
+        if (this.findPc(peerUuid).isInitiator) {
+          const player = this.peerConnections
+            .filter(pc => pc.isAlive && !pc.isInitiator)
+            .sort((pcA, pcB) => (pcA.isAlive ? 1 : -1))
+            .find(pc => !pc.isInitiator)
+          this.newInitiator({id: player.id})
         }
         this.$delete(this.findPc(peerUuid), 'stream')
         this.$delete(this.findPc(peerUuid), 'pc')
@@ -944,7 +965,8 @@ export default {
       this.isInitiator = false
       clearInterval(this.timer)
       this.$socket.emit('newInitiator', {
-        id
+        id,
+        room: this.room
       })
     },
     secondVoting(players) {
@@ -970,6 +992,7 @@ export default {
       this.gameSteps = [...this.randezvous()]
       this.nextStep(this.gameSteps[0], 5000)
       this.gameIsStarted = true
+      this.isPause = false
     },
     pauseGame() {
       this.isPause = !this.isPause
@@ -1122,10 +1145,10 @@ export default {
     },
     shouldEndGame() {
       const mafia = this.peerConnections.filter(
-        player => ['boss', 'mafia'].includes(player.role) && player.isAlive
+        player => ['boss', 'mafia'].includes(player.role) && player.isAlive && player.role
       )
       const citizen = this.peerConnections.filter(
-        player => !['boss', 'mafia'].includes(player.role) && player.isAlive
+        player => !['boss', 'mafia'].includes(player.role) && player.isAlive && player.role
       )
 
       return mafia.length >= citizen.length || !mafia.length || !this.gameSteps.length

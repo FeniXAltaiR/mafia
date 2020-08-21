@@ -25,12 +25,12 @@ const playersInRoom = room => {
 }
 
 io.on('connect', socket => {
-  socket.on('isInitiator', ({room}) => {
+  socket.on('isInitiator', ({id, room}) => {
     const players = playersInRoom(room)
 
-    socket.emit('isInitiator', {
-      id: socket.id,
-      isInitiator: players.length === 0
+    io.to(room).emit('isInitiator', {
+      id,
+      isInitiator: players.length === 1
     })
   })
 
@@ -151,9 +151,9 @@ io.on('connect', socket => {
     socket.to(room).emit('removeNextStep')
   })
 
-  socket.on('newInitiator', ({id, gameSteps}) => {
-    socket.to(id).emit('newInitiator', {
-      gameSteps
+  socket.on('newInitiator', ({id, room}) => {
+    io.to(room).emit('newInitiator', {
+      id
     })
   })
 
