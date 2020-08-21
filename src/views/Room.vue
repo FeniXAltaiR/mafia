@@ -89,7 +89,13 @@
       ghostClass="ghost"
       class="align-center flex-wrap px-2 justify-center"
     >
-      <v-col md="3" sm="6" v-for="player in getPlayerStreams" :key="player.id">
+      <v-col
+        md="3"
+        sm="6"
+        v-for="player in getPlayerStreams"
+        :key="player.id"
+        style="position: relative;"
+      >
         <template v-if="player.stream">
           <v-row class="justify-center px-2">
             <v-badge
@@ -305,6 +311,17 @@
                 </v-hover>
               </v-badge>
             </v-badge>
+          </v-row>
+        </template>
+        <template v-else>
+          <v-row class="justify-center px-2">
+            <div
+              class="d-flex px-2 pb-3 pt-1 align-center justify-center white--text"
+              style="height: 100%; width: 100%; position: absolute; top: 0; border-radius: 8px;"
+            >
+              <h1>{{ findPc(player.id).displayName }}</h1>
+              <v-icon class="error--text ml-2">mdi-lan-disconnect</v-icon>
+            </div>
           </v-row>
         </template>
       </v-col>
