@@ -9,60 +9,54 @@
       <v-col md="2">
         <v-row class="justify-center align-center">
           <span class="mr-2 white--text">{{ time }}</span>
-          <v-btn
-            v-if="gameIsStarted && isInitiator"
-            icon
-            small
-            @click="pauseGame"
-            class="white--text"
-          >
-            <v-icon>mdi-{{ isPause ? 'play' : 'pause' }}</v-icon>
-          </v-btn>
-          <v-btn
-            v-else-if="!gameIsStarted && isInitiator"
-            icon
-            small
-            @click="startGame"
-            class="white--text"
-          >
-            <v-icon>mdi-play</v-icon>
-          </v-btn>
-          <v-btn
-            v-if="gameIsStarted && isInitiator"
-            icon
-            small
-            @click="addDuration"
-            class="white--text"
-          >
-            <v-icon>mdi-plus</v-icon>
-          </v-btn>
-          <v-btn
-            v-if="gameIsStarted && isInitiator"
-            icon
-            small
-            @click="goToNextStep"
-            class="white--text"
-          >
-            <v-icon>mdi-skip-next</v-icon>
-          </v-btn>
-          <v-btn
-            v-if="!gameIsStarted && isInitiator"
-            icon
-            small
-            @click="sortPlayers"
-            class="white--text"
-          >
-            <v-icon>mdi-update</v-icon>
-          </v-btn>
-          <v-btn
-            v-if="gameIsStarted && isInitiator"
-            icon
-            small
-            @click="endGame"
-            class="white--text"
-          >
-            <v-icon>mdi-exit-run</v-icon>
-          </v-btn>
+          <v-tooltip open-delay="250" top v-if="gameIsStarted && isInitiator">
+            <template v-slot:activator="{on}">
+              <v-btn icon small @click="pauseGame" class="white--text" v-on="on">
+                <v-icon>mdi-{{ isPause ? 'play' : 'pause' }}</v-icon>
+              </v-btn>
+            </template>
+            <span>{{ isPause ? 'play' : 'pause' }}</span>
+          </v-tooltip>
+          <v-tooltip open-delay="250" top v-if="!gameIsStarted && isInitiator">
+            <template v-slot:activator="{on}">
+              <v-btn icon small @click="startGame" class="white--text" v-on="on">
+                <v-icon>mdi-play</v-icon>
+              </v-btn>
+            </template>
+            <span>Start game</span>
+          </v-tooltip>
+          <v-tooltip open-delay="250" top v-if="gameIsStarted && isInitiator">
+            <template v-slot:activator="{on}">
+              <v-btn icon small @click="addDuration" class="white--text" v-on="on">
+                <v-icon>mdi-plus</v-icon>
+              </v-btn>
+            </template>
+            <span>Add 10 seconds</span>
+          </v-tooltip>
+          <v-tooltip open-delay="250" top v-if="gameIsStarted && isInitiator">
+            <template v-slot:activator="{on}">
+              <v-btn icon small @click="goToNextStep" class="white--text" v-on="on">
+                <v-icon>mdi-skip-next</v-icon>
+              </v-btn>
+            </template>
+            <span>Go to next step</span>
+          </v-tooltip>
+          <v-tooltip open-delay="250" top v-if="!gameIsStarted && isInitiator">
+            <template v-slot:activator="{on}">
+              <v-btn icon small @click="sortPlayers" class="white--text" v-on="on">
+                <v-icon>mdi-update</v-icon>
+              </v-btn>
+            </template>
+            <span>Sort players</span>
+          </v-tooltip>
+          <v-tooltip open-delay="250" top v-if="gameIsStarted && isInitiator">
+            <template v-slot:activator="{on}">
+              <v-btn icon small @click="endGame" class="white--text" v-on="on">
+                <v-icon>mdi-exit-run</v-icon>
+              </v-btn>
+            </template>
+            <span>End game</span>
+          </v-tooltip>
           <v-menu absolute>
             <template v-slot:activator="{on}">
               <v-slide-x-transition>
@@ -544,6 +538,8 @@ export default {
         this.$set(pc, 'isAlive', true)
         this.$set(pc, 'isVisibleRole', true)
       })
+      this.duration = 0
+      this.time = moment(this.duration).format('mm:ss')
       this.isSecondVoting = false
       this.gameIsStarted = false
     },
@@ -1031,6 +1027,12 @@ export default {
     },
     addDuration(e, duration = 10000) {
       this.duration += duration
+      this.time = moment(this.duration).format('mm:ss')
+      this.$socket.emit('time', {
+        time: this.time,
+        duration: this.duration,
+        room: this.room
+      })
     },
     startGame() {
       this.$socket.emit('startGame', {room: this.room})

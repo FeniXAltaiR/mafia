@@ -96,7 +96,23 @@ io.on('connect', socket => {
   // })
 
   socket.on('startGame', ({room}) => {
-    const gameRoles = ['mafia', 'boss', 'citizen', 'doctor', 'detective', 'mafia']
+    const gameRoles = [
+      'mafia',
+      'citizen',
+      'citizen',
+      'citizen',
+      'mafia',
+      'citizen',
+      'citizen',
+      'citizen',
+      'mafia',
+      'citizen',
+      'citizen',
+      'citizen',
+      'boss',
+      'doctor',
+      'detective'
+    ]
     const players = playersInRoom(room)
 
     players
