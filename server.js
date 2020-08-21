@@ -25,6 +25,16 @@ const playersInRoom = room => {
 }
 
 io.on('connect', socket => {
+  socket.on('disconnecting', () => {
+    const rooms = Object.keys(socket.rooms)
+
+    rooms.forEach(room => {
+      socket.to(room).emit('disconnectPlayer', {
+        id: socket.id
+      })
+    })
+  })
+
   socket.on('isInitiator', ({id, room}) => {
     const players = playersInRoom(room)
 
@@ -44,7 +54,7 @@ io.on('connect', socket => {
     const {room} = message
     const players = playersInRoom(room)
 
-    if (players.length >= 12) {
+    if (players.length >= 20) {
       socket.emit('fullRoom')
     } else {
       socket.join(room)

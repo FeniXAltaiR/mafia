@@ -15,7 +15,7 @@
                 <v-icon>mdi-{{ isPause ? 'play' : 'pause' }}</v-icon>
               </v-btn>
             </template>
-            <span>{{ isPause ? 'play' : 'pause' }}</span>
+            <span>{{ isPause ? $t('mafia.play') : $t('mafia.pause') }}</span>
           </v-tooltip>
           <v-tooltip open-delay="250" top v-if="!gameIsStarted && isInitiator">
             <template v-slot:activator="{on}">
@@ -23,7 +23,7 @@
                 <v-icon>mdi-play</v-icon>
               </v-btn>
             </template>
-            <span>Start game</span>
+            <span>{{ $t('mafia.startGame') }}</span>
           </v-tooltip>
           <v-tooltip open-delay="250" top v-if="gameIsStarted && isInitiator">
             <template v-slot:activator="{on}">
@@ -31,7 +31,7 @@
                 <v-icon>mdi-plus</v-icon>
               </v-btn>
             </template>
-            <span>Add 10 seconds</span>
+            <span>{{ $t('mafia.addDuration') }}</span>
           </v-tooltip>
           <v-tooltip open-delay="250" top v-if="gameIsStarted && isInitiator">
             <template v-slot:activator="{on}">
@@ -39,7 +39,7 @@
                 <v-icon>mdi-skip-next</v-icon>
               </v-btn>
             </template>
-            <span>Go to next step</span>
+            <span>{{ $t('mafia.goToNextStep') }}</span>
           </v-tooltip>
           <v-tooltip open-delay="250" top v-if="!gameIsStarted && isInitiator">
             <template v-slot:activator="{on}">
@@ -47,7 +47,7 @@
                 <v-icon>mdi-update</v-icon>
               </v-btn>
             </template>
-            <span>Sort players</span>
+            <span>{{ $t('mafia.sortPlayers') }}</span>
           </v-tooltip>
           <v-tooltip open-delay="250" top v-if="gameIsStarted && isInitiator">
             <template v-slot:activator="{on}">
@@ -55,7 +55,7 @@
                 <v-icon>mdi-exit-run</v-icon>
               </v-btn>
             </template>
-            <span>End game</span>
+            <span>{{ $t('mafia.endGame') }}</span>
           </v-tooltip>
           <v-menu absolute>
             <template v-slot:activator="{on}">
@@ -67,10 +67,10 @@
             </template>
             <v-list dense>
               <v-list-item @click="init('getUserMedia')">
-                <v-list-item-title>getUserMedia</v-list-item-title>
+                <v-list-item-title>{{ $t('mafia.webcam') }}</v-list-item-title>
               </v-list-item>
               <v-list-item @click="init('getDisplayMedia')">
-                <v-list-item-title>getDisplayMedia</v-list-item-title>
+                <v-list-item-title>{{ $t('mafia.screen') }}</v-list-item-title>
               </v-list-item>
             </v-list>
           </v-menu>
@@ -83,13 +83,7 @@
       ghostClass="ghost"
       class="align-center flex-wrap px-2 justify-center"
     >
-      <v-col
-        md="3"
-        sm="6"
-        v-for="player in getPlayerStreams"
-        :key="player.id"
-        style="position: relative;"
-      >
+      <v-col md="3" v-for="player in getPlayerStreams" :key="player.id" style="position: relative;">
         <template v-if="player.stream">
           <v-row class="justify-center px-2">
             <v-badge
@@ -112,11 +106,7 @@
                 </template>
                 <v-hover v-slot:default="{hover}" open-delay="200">
                   <div>
-                    <video
-                      :srcObject.prop="player.stream"
-                      autoplay
-                      style="max-height: calc((100vh - 120px - 32px) / 3); max-width: 100%; border-radius: 8px; border: 2px solid grey"
-                    ></video>
+                    <video :srcObject.prop="player.stream" autoplay :style="getVideoStyle"></video>
                     <div
                       v-if="!player.isVideo"
                       class="d-flex px-2 pb-3 pt-1 align-center justify-center white--text"
@@ -146,10 +136,12 @@
                               </template>
                               <v-list dense>
                                 <v-list-item @click="newInitiator(player)">
-                                  <v-list-item-title>Make initiator</v-list-item-title>
+                                  <v-list-item-title>{{
+                                    $t('mafia.newInitiator')
+                                  }}</v-list-item-title>
                                 </v-list-item>
                                 <v-list-item @click="banPlayer(player)">
-                                  <v-list-item-title>Ban player</v-list-item-title>
+                                  <v-list-item-title>{{ $t('mafia.banPlayer') }}</v-list-item-title>
                                 </v-list-item>
                               </v-list>
                             </v-menu>
@@ -226,7 +218,7 @@
                             <v-btn
                               v-if="canCheckRole(player)"
                               icon
-                              class="white--text"
+                              class="warning--text white"
                               @click="checkRole(player)"
                             >
                               <v-icon>mdi-magnify</v-icon>
@@ -279,7 +271,9 @@
                           <div class="bgtext px-1 py-1">
                             <span>{{ findIndexPc(player.id) + 1 }}. </span>
                             <span>{{ findPc(player.id).displayName }}</span>
-                            <span v-if="findPc(player.id).isInitiator">(Leader)</span>
+                            <span v-if="findPc(player.id).isInitiator">
+                              ({{ $t('mafia.leader') }})</span
+                            >
                           </div>
                           <v-slide-y-reverse-transition>
                             <v-icon v-if="activePlayer(player)" class="primary--text ml-2"
@@ -314,7 +308,14 @@
               style="height: 100%; width: 100%; position: absolute; top: 0; border-radius: 8px;"
             >
               <h1>{{ findPc(player.id).displayName }}</h1>
-              <v-icon class="error--text ml-2">mdi-lan-disconnect</v-icon>
+              <v-btn
+                icon
+                class="error--text ml-2"
+                @click="banPlayer(player)"
+                :disabled="!isInitiator"
+              >
+                <v-icon>mdi-lan-disconnect</v-icon>
+              </v-btn>
             </div>
           </v-row>
         </template>
@@ -323,7 +324,7 @@
     <v-dialog v-model="dialog.value" persistent max-width="600px">
       <v-card>
         <v-card-title>
-          <span class="headline">Settings</span>
+          <span class="headline">{{ $t('mafia.settings') }}</span>
         </v-card-title>
         <v-card-text>
           <v-container>
@@ -342,8 +343,10 @@
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn color="blue darken-1" text @click="dialog.value = false">Close</v-btn>
-          <v-btn color="blue darken-1" text @click="updateSettings">Save</v-btn>
+          <v-btn color="blue darken-1" text @click="dialog.value = false">{{
+            $t('mafia.close')
+          }}</v-btn>
+          <v-btn color="blue darken-1" text @click="updateSettings">{{ $t('mafia.save') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -393,6 +396,15 @@ export default {
   computed: {
     getPlayerStreams() {
       return this.peerConnections
+    },
+    getVideoStyle() {
+      const rows = Math.ceil(this.peerConnections.length / 4)
+      return {
+        'max-height': `calc((100vh - 120px - ${rows * 20}px) / ${rows})`,
+        'max-width': '100%',
+        'border-radius': '8px',
+        border: '2px solid grey'
+      }
     }
   },
 
@@ -409,6 +421,9 @@ export default {
     },
     disconnecting() {
       console.log('disconnecting')
+    },
+    disconnectPlayer({id}) {
+      this.isPause = true
     },
     test(msg) {
       console.dir(msg)
@@ -671,6 +686,7 @@ export default {
       // console.log('Adding local stream.')
       const settings = {
         id: this.$socket.id,
+        displayName: localStorage.getItem('displayName'),
         ids: [],
         room: this.room,
         killPlayers: [],
@@ -1036,7 +1052,7 @@ export default {
     },
     startGame() {
       this.$socket.emit('startGame', {room: this.room})
-      this.setGameInfo({text: 'Start game', type: 'start'})
+      this.setGameInfo({text: this.$t('mafia.startGame'), type: 'start'})
       this.gameSteps = [...this.randezvous()]
       this.nextStep(this.gameSteps[0], 5000)
       this.gameIsStarted = true
@@ -1051,7 +1067,7 @@ export default {
         this.toggleAudio({id, room, state: true})
       })
       this.$socket.emit('endGame', {room: this.room})
-      this.setGameInfo({text: 'Game over', type: 'end'})
+      this.setGameInfo({text: this.$t('mafia.endGame'), type: 'end'})
       clearInterval(this.timer)
       this.gameIsStarted = false
     },
@@ -1069,7 +1085,11 @@ export default {
       const result = [
         ...this.peerConnections.map(player => () => {
           this.duration = duration
-          this.setGameInfo({text: player.displayName, type: 'randezvous', active: player.id})
+          this.setGameInfo({
+            text: `${this.$t('mafia.randezvous')}: ${player.displayName}`,
+            type: 'randezvous',
+            active: player.id
+          })
         }),
         () => {
           this.gameSteps.push(...this.gameNight())
@@ -1083,19 +1103,31 @@ export default {
       return [
         () => {
           this.duration = duration
-          this.setGameInfo({text: 'night mafia', type: 'mafia'})
+          this.setGameInfo({
+            text: `${this.$t('mafia.night')}: ${this.$t('mafia.mafia')}`,
+            type: 'mafia'
+          })
         },
         () => {
           this.duration = duration
-          this.setGameInfo({text: 'night boss', type: 'boss'})
+          this.setGameInfo({
+            text: `${this.$t('mafia.night')}: ${this.$t('mafia.boss')}`,
+            type: 'boss'
+          })
         },
         () => {
           this.duration = duration
-          this.setGameInfo({text: 'night detective', type: 'detective'})
+          this.setGameInfo({
+            text: `${this.$t('mafia.night')}: ${this.$t('mafia.detective')}`,
+            type: 'detective'
+          })
         },
         () => {
           this.duration = duration
-          this.setGameInfo({text: 'night doctor', type: 'doctor'})
+          this.setGameInfo({
+            text: `${this.$t('mafia.night')}: ${this.$t('mafia.doctor')}`,
+            type: 'doctor'
+          })
         },
         () => {
           this.shouldKill()
@@ -1111,13 +1143,17 @@ export default {
         this.meeting,
         () => {
           this.duration = duration
-          this.setGameInfo({text: 'nomination', type: 'nomination'})
+          this.setGameInfo({text: this.$t('mafia.prepareToTheNomination'), type: 'nomination'})
         },
         ...this.peerConnections
           .filter(player => player.isAlive)
           .map(player => () => {
             this.duration = duration
-            this.setGameInfo({text: player.displayName, type: 'nomination', active: player.id})
+            this.setGameInfo({
+              text: `${this.$t('mafia.nomination')}: ${player.displayName}`,
+              type: 'nomination',
+              active: player.id
+            })
           }),
         () => {
           this.gameSteps.splice(-1, 0, ...this.gameVoting())
@@ -1147,11 +1183,11 @@ export default {
         },
         () => {
           this.duration = 10000
-          this.setGameInfo({text: 'vote for exile', type: 'exile'})
+          this.setGameInfo({text: this.$t('mafia.voteForExile'), type: 'exile'})
         },
         () => {
           this.duration = duration
-          this.setGameInfo({text: 'voting', type: 'voting'})
+          this.setGameInfo({text: this.$t('mafia.voting'), type: 'voting'})
         },
         () => {
           this.exile()
@@ -1162,7 +1198,7 @@ export default {
       this.gameSteps.splice(-4, 0, () => {
         this.duration = duration
         this.setGameInfo({
-          text: `explanation ${player.displayName}`,
+          text: `${this.$t('mafia.explanation')}: ${player.displayName}`,
           type: 'explanation',
           active: player.id
         })
@@ -1172,7 +1208,11 @@ export default {
       return [
         () => {
           this.duration = duration
-          this.setGameInfo({text: `Last word ${displayName}`, type: 'last_word', active: id})
+          this.setGameInfo({
+            text: `${this.$t('mafia.lastWord')}: ${displayName}`,
+            type: 'last_word',
+            active: id
+          })
         },
         () => {
           this.duration = duration
@@ -1182,21 +1222,23 @@ export default {
           })
           this.toggleVideo({id, room: this.room, state: false})
           this.toggleAudio({id, room: this.room, state: false})
-          this.setGameInfo({text: 'Prepare to the night'})
+          this.setGameInfo({text: this.$t('mafia.prepareToTheNight')})
         }
       ]
     },
     meeting(duration = 10000) {
       this.$socket.emit('resetGameNight', {room: this.room})
       this.duration = duration
-      this.setGameInfo({text: 'meeting', type: 'meeting'})
+      this.setGameInfo({text: this.$t('mafia.meeting'), type: 'meeting'})
     },
     shouldEndGame() {
       const mafia = this.peerConnections.filter(
-        player => ['boss', 'mafia'].includes(player.role) && player.isAlive && player.role
+        player =>
+          ['boss', 'mafia'].includes(player.role) && player.isAlive && player.role && player.stream
       )
       const citizen = this.peerConnections.filter(
-        player => !['boss', 'mafia'].includes(player.role) && player.isAlive && player.role
+        player =>
+          !['boss', 'mafia'].includes(player.role) && player.isAlive && player.role && player.stream
       )
 
       return mafia.length >= citizen.length || !mafia.length || !this.gameSteps.length
@@ -1213,6 +1255,7 @@ export default {
     },
     updateSettings() {
       this.dialog.value = false
+      localStorage.setItem('displayName', this.dialog.displayName)
       this.$socket.emit('updateSettings', {
         ...this.dialog,
         id: this.$socket.id,

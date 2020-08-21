@@ -1,0 +1,37 @@
+{
+  "main": {
+    "createRoom": "Создать комнату"
+  },
+  "mafia": {
+    "play": "Продолжить",
+    "pause": "Пауза",
+    "startGame": "Начать игру",
+    "addDuration": "Добавить 10 секунд",
+    "goToNextStep": "Перейти к след. шагу",
+    "sortPlayers": "Перемешать игроков",
+    "endGame": "Конец игры",
+    "webcam": "Вебкамера",
+    "screen": "Экран",
+    "newInitiator": "Сделать ведущим",
+    "banPlayer": "Выгнать",
+    "leader": "Лидер",
+    "settings": "Настройки",
+    "close": "Закрыть",
+    "save": "Сохранить",
+    "meeting": "Общее обсуждение",
+    "night": "Ночь",
+    "day": "День",
+    "mafia": "Мафия",
+    "boss": "Дон",
+    "detective": "Комиссар",
+    "doctor": "Доктор",
+    "prepareToTheNomination": "Подготовка к выставлению",
+    "nomination": "Выставление",
+    "voteForExile": "Голосование за изгнание",
+    "voting": "Подготовка результатов голосования",
+    "explanation": "Оправдание",
+    "lastWord": "Последнее слово",
+    "prepareToTheNight": "Начинается ночь",
+    "randezvous": "Знакомство"
+  }
+}

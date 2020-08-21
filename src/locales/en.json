@@ -1,0 +1,37 @@
+{
+  "main": {
+    "createRoom": "Create room"
+  },
+  "mafia": {
+    "play": "Play",
+    "pause": "Pause",
+    "startGame": "Start game",
+    "addDuration": "Add 10 seconds",
+    "goToNextStep": "Go to next step",
+    "sortPlayers": "Sort players",
+    "endGame": "End game",
+    "webcam": "Webcam",
+    "screen": "Screen",
+    "newInitiator": "Make initiator",
+    "banPlayer": "Ban player",
+    "leader": "Leader",
+    "settings": "Settings",
+    "close": "Close",
+    "save": "Save",
+    "meeting": "Meeting",
+    "night": "Night",
+    "day": "Day",
+    "mafia": "Mafia",
+    "boss": "Boss",
+    "detective": "Detective",
+    "doctor": "Doctor",
+    "prepareToTheNomination": "Prepare to the nomination",
+    "nomination": "Nomination",
+    "voteForExile": "Voting for exile",
+    "voting": "Finish voting",
+    "explanation": "Explanation",
+    "lastWord": "Last word",
+    "prepareToTheNight": "Prepare to the night",
+    "randezvous": "randezvous"
+  }
+}

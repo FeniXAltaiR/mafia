@@ -1,7 +1,21 @@
 <template>
-  <div class="px-2"></div>
+  <v-row class="px-2 justify-center">
+    <v-btn color="#0067A3" class="px-4 py-16 white--text" @click="createRoom">{{
+      $t('main.createRoom')
+    }}</v-btn>
+  </v-row>
 </template>
 
 <script>
-export default {}
+export default {
+  methods: {
+    createRoom() {
+      const shortUrl = () => {
+        return ('000000' + ((Math.random() * Math.pow(36, 6)) << 0).toString(36)).slice(-6)
+      }
+
+      this.$router.push(shortUrl())
+    }
+  }
+}
 </script>

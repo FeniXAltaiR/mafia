@@ -7,14 +7,32 @@
       <!-- <v-btn icon small class="mr-2" @click="toggleDrawer">
         <v-icon>mdi-menu</v-icon>
       </v-btn> -->
-      <h1 @click="goToMainPage">MAFIA</h1>
+      <h2 @click="goToMainPage" style="cursor: pointer;">MAFIA</h2>
       <v-spacer></v-spacer>
-      <v-btn color="#0067A3" @click="createRoom">Create room</v-btn>
+      <v-menu absolute>
+        <template v-slot:activator="{on}">
+          <v-slide-x-transition>
+            <v-btn icon v-on="on" class="white--text">
+              <v-icon>mdi-web</v-icon>
+            </v-btn>
+          </v-slide-x-transition>
+        </template>
+        <v-list dense>
+          <v-list-item @click="changeLang('ru')">
+            <v-list-item-title>Rus</v-list-item-title>
+          </v-list-item>
+          <v-list-item @click="changeLang('en')">
+            <v-list-item-title>Eng</v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
     </v-app-bar>
 
     <v-main>
       <v-container fluid style="background: #404040">
-        <router-view></router-view>
+        <v-scale-transition mode="out-in">
+          <router-view></router-view>
+        </v-scale-transition>
       </v-container>
     </v-main>
 
@@ -43,12 +61,9 @@ export default {
       if (location.pathname === '/') return
       this.$router.push('/')
     },
-    createRoom() {
-      const shortUrl = () => {
-        return ('000000' + ((Math.random() * Math.pow(36, 6)) << 0).toString(36)).slice(-6)
-      }
-
-      this.$router.push(shortUrl())
+    changeLang(locale) {
+      this.$i18n.locale = locale
+      localStorage.setItem('locale', locale)
     }
   }
 }
