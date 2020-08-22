@@ -32,6 +32,10 @@
     "explanation": "Explanation",
     "lastWord": "Last word",
     "prepareToTheNight": "Prepare to the night",
-    "randezvous": "randezvous"
+    "randezvous": "randezvous",
+    "confirm": "Confirm"
+  },
+  "messages": {
+    "confirm": "Confirm operation"
   }
 }

@@ -51,7 +51,13 @@
           </v-tooltip>
           <v-tooltip open-delay="250" top v-if="gameIsStarted && isInitiator">
             <template v-slot:activator="{on}">
-              <v-btn icon small @click="endGame" class="white--text" v-on="on">
+              <v-btn
+                icon
+                small
+                @click="openDialogAlert({method: endGame})"
+                class="white--text"
+                v-on="on"
+              >
                 <v-icon>mdi-exit-run</v-icon>
               </v-btn>
             </template>
@@ -135,12 +141,16 @@
                                 </v-slide-x-transition>
                               </template>
                               <v-list dense>
-                                <v-list-item @click="newInitiator(player)">
+                                <v-list-item
+                                  @click="openDialogAlert({method: newInitiator, args: [player]})"
+                                >
                                   <v-list-item-title>{{
                                     $t('mafia.newInitiator')
                                   }}</v-list-item-title>
                                 </v-list-item>
-                                <v-list-item @click="banPlayer(player)">
+                                <v-list-item
+                                  @click="openDialogAlert({method: banPlayer, args: [player]})"
+                                >
                                   <v-list-item-title>{{ $t('mafia.banPlayer') }}</v-list-item-title>
                                 </v-list-item>
                               </v-list>
@@ -178,7 +188,7 @@
                                 v-if="hover && player.id === $socket.id"
                                 icon
                                 class="white--text"
-                                @click="openDialog(player)"
+                                @click="openDialogSettings(player)"
                               >
                                 <v-icon small>mdi-cog</v-icon>
                               </v-btn>
@@ -311,7 +321,7 @@
               <v-btn
                 icon
                 class="error--text ml-2"
-                @click="banPlayer(player)"
+                @click="openDialogAlert({method: banPlayer, args: [player]})"
                 :disabled="!isInitiator"
               >
                 <v-icon>mdi-lan-disconnect</v-icon>
@@ -321,7 +331,7 @@
         </template>
       </v-col>
     </draggable>
-    <v-dialog v-model="dialog.value" persistent max-width="600px">
+    <v-dialog v-model="dialogSettings.value" persistent max-width="600px">
       <v-card>
         <v-card-title>
           <span class="headline">{{ $t('mafia.settings') }}</span>
@@ -333,7 +343,7 @@
                 <v-text-field
                   autofocus
                   label="Nickname*"
-                  v-model="dialog.displayName"
+                  v-model="dialogSettings.displayName"
                   required
                   @keypress.enter="updateSettings"
                 ></v-text-field>
@@ -343,10 +353,32 @@
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn color="blue darken-1" text @click="dialog.value = false">{{
+          <v-btn color="blue darken-1" text @click="dialogSettings.value = false">{{
             $t('mafia.close')
           }}</v-btn>
           <v-btn color="blue darken-1" text @click="updateSettings">{{ $t('mafia.save') }}</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+    <v-dialog v-model="dialogAlert.value" persistent max-width="600px">
+      <v-card class="primary">
+        <v-alert type="warning" color="transparent" close-icon="mdi-axe" class="mb-0">
+          <template v-slot:close>
+            <v-btn icon small @click="dialogAlert.value = false">
+              <v-icon>mdi-close</v-icon>
+            </v-btn>
+          </template>
+          <span>{{ dialogAlert.text }}</span>
+        </v-alert>
+
+        <div class="pb-2">
+          <v-divider class="info" style="opacity: 0.22"></v-divider>
+        </div>
+
+        <v-card-actions class="justify-end">
+          <v-btn class="primary darken-1" text @click="confirmDialogAlert">
+            {{ $t('mafia.confirm') }}
+          </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -388,9 +420,14 @@ export default {
     duration: 0,
     gameSteps: [],
     gameInfo: {},
-    dialog: {
+    dialogSettings: {
       value: false,
       displayName: ''
+    },
+    dialogAlert: {
+      value: false,
+      method: null,
+      text: ''
     }
   }),
   computed: {
@@ -1249,15 +1286,33 @@ export default {
       }
       return 'undefined'
     },
-    openDialog({displayName}) {
-      this.dialog.value = true
-      this.dialog.displayName = displayName
+    openDialogAlert({text = this.$t('messages.confirm'), method, args = []}) {
+      this.dialogAlert = {
+        value: true,
+        method,
+        text,
+        args
+      }
+    },
+    confirmDialogAlert() {
+      const {args = []} = this.dialogAlert
+      this.dialogAlert.method(...args)
+      this.dialogAlert = {
+        value: false,
+        method: null,
+        text: '',
+        args: []
+      }
+    },
+    openDialogSettings({displayName}) {
+      this.dialogSettings.value = true
+      this.dialogSettings.displayName = displayName
     },
     updateSettings() {
-      this.dialog.value = false
-      localStorage.setItem('displayName', this.dialog.displayName)
+      this.dialogSettings.value = false
+      localStorage.setItem('displayName', this.dialogSettings.displayName)
       this.$socket.emit('updateSettings', {
-        ...this.dialog,
+        ...this.dialogSettings,
         id: this.$socket.id,
         room: this.room
       })

@@ -32,6 +32,10 @@
     "explanation": "Оправдание",
     "lastWord": "Последнее слово",
     "prepareToTheNight": "Начинается ночь",
-    "randezvous": "Знакомство"
+    "randezvous": "Знакомство",
+    "confirm": "Подтвердить"
+  },
+  "messages": {
+    "confirm": "Подтвердите операцию"
   }
 }
