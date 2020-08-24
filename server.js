@@ -141,6 +141,14 @@ io.on('connect', socket => {
     socket.to(info.room).emit('setGameInfo', info)
   })
 
+  socket.on('addStat', ({room, ...stat}) => {
+    io.to(room).emit('addStat', stat)
+  })
+
+  socket.on('statistics', ({id, stat}) => {
+    socket.to(id).emit('statistics', stat)
+  })
+
   socket.on('sortPlayers', ({room, players}) => {
     io.to(room).emit('sortPlayers', {players})
   })

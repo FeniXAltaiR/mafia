@@ -63,6 +63,14 @@
             </template>
             <span>{{ $t('mafia.endGame') }}</span>
           </v-tooltip>
+          <v-tooltip open-delay="250" top v-if="!gameIsStarted && statistics.length">
+            <template v-slot:activator="{on}">
+              <v-btn icon small @click="openDialogStat" class="white--text" v-on="on">
+                <v-icon>mdi-view-list</v-icon>
+              </v-btn>
+            </template>
+            <span>{{ $t('mafia.statistics') }}</span>
+          </v-tooltip>
           <v-menu absolute>
             <template v-slot:activator="{on}">
               <v-slide-x-transition>
@@ -126,7 +134,7 @@
                       <h1>{{ findPc(player.id).displayName }}</h1>
                     </div>
                     <div
-                      class="d-flex px-2 pb-3 pt-1 flex-column justify-space-between white--text"
+                      class="d-flex px-0 pb-1 pt-1 flex-column justify-space-between white--text"
                       style="height: 100%; width: 100%; position: absolute; top: 0; border-radius: 8px;"
                     >
                       <v-row class="justify-space-between">
@@ -283,7 +291,7 @@
                       </v-row>
                       <div class="d-flex justify-space-between align-end">
                         <div class="d-flex align-end">
-                          <div class="bgtext px-1 py-1">
+                          <div class="bgtext bgtext--left px-1 py-2">
                             <span>{{ findIndexPc(player.id) + 1 }}. </span>
                             <span>{{ findPc(player.id).displayName }}</span>
                             <span v-if="findPc(player.id).isInitiator">
@@ -303,7 +311,7 @@
                             >
                           </v-slide-y-reverse-transition>
                           <v-slide-x-transition>
-                            <div class="bgtext px-1 py-1">
+                            <div class="bgtext bgtext--right px-1 py-2">
                               <span>{{ formatRole(player) }}</span>
                             </div>
                           </v-slide-x-transition>
@@ -395,6 +403,61 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+    <v-dialog v-model="dialogStat.value" persistent max-width="1280px">
+      <v-row
+        class="justify-end align-center mx-0 py-1 px-1"
+        style="background: rgba(25, 118, 210, .9)"
+      >
+        <v-btn icon small @click="dialogStat.value = false" class="white--text">
+          <v-icon>mdi-close</v-icon>
+        </v-btn>
+      </v-row>
+      <v-divider class="info"></v-divider>
+      <v-card
+        class="px-2 pt-2"
+        style="background: rgba(25, 118, 210, .78)"
+        flat
+        tile
+        v-for="(stat, index) in statistics"
+        :key="index"
+      >
+        <h2 v-if="stat.title">{{ $t(`mafia.${stat.title}`) }}</h2>
+        <v-row class="justify-space-between" v-for="(players, i) in stat.players" :key="i">
+          <v-col>
+            <v-row class="align-center mx-0">
+              <div
+                v-for="id in players.from"
+                :key="id"
+                class="d-inline-flex flex-column justify-center mr-2"
+              >
+                <v-img
+                  class="mx-auto"
+                  :src="findPc(id).src"
+                  style="border-radius: 50%; height: 80px; max-width: 80px"
+                ></v-img>
+                <span class="text-center subtitle-2">{{ findPc(id).displayName }}</span>
+              </div>
+            </v-row>
+          </v-col>
+          <v-col v-if="players.to">
+            <v-row class="justify-end align-center mx-0">
+              <v-icon :class="stat.iconClass" class="mr-2 white pa-1" style="border-radius: 50%">{{
+                stat.icon
+              }}</v-icon>
+              <div class="d-inline-flex flex-column justify-center ml-2">
+                <v-img
+                  class="mx-auto"
+                  :src="findPc(players.to).src"
+                  style="border-radius: 50%; height: 80px; max-width: 80px"
+                ></v-img>
+                <span class="text-center subtitle-2">{{ findPc(players.to).displayName }}</span>
+              </div>
+            </v-row>
+          </v-col>
+        </v-row>
+        <v-divider class="info"></v-divider>
+      </v-card>
+    </v-dialog>
     <canvas class="d-none"></canvas>
   </div>
 </template>
@@ -422,6 +485,7 @@ export default {
     },
     room: null,
     peerConnections: [],
+    statistics: [],
     time: '00:00',
     timer: null,
     isPause: false,
@@ -442,6 +506,9 @@ export default {
       value: false,
       method: null,
       text: ''
+    },
+    dialogStat: {
+      value: false
     }
   }),
   computed: {
@@ -569,6 +636,12 @@ export default {
     setGameInfo(info) {
       this.gameInfo = info
     },
+    addStat(stat) {
+      this.statistics.push(stat)
+    },
+    statistics(stat) {
+      this.statistics = stat
+    },
     resetGameNight() {
       this.peerConnections.forEach(pc => {
         if (pc.isHeal) {
@@ -595,6 +668,7 @@ export default {
     startGame() {
       this.gameIsStarted = true
       this.isPause = false
+      this.statistics = []
       this.gameSteps = [...this.randezvous()]
     },
     endGame() {
@@ -642,6 +716,13 @@ export default {
         dest: settings.id,
         ...mySettings
       })
+
+      if (this.isInitiator) {
+        this.$socket.emit('statistics', {
+          id: settings.id,
+          stat: this.statistics
+        })
+      }
     },
     createOffer(settings) {
       console.log('CREATE OFFER')
@@ -869,6 +950,7 @@ export default {
         xhr.send()
       }
     },
+
     findPc(id) {
       return this.peerConnections.find(pc => pc.id === id || pc.ids.includes(id))
     },
@@ -919,6 +1001,7 @@ export default {
     checkRole({id}) {
       this.$set(this.findPc(id), 'isVisibleRole', true)
       this.canCheck = false
+      this.addStatCheckRole({fromId: this.$socket.id, toId: id})
     },
 
     canNomination({id, isNominate = false, isAlive}) {
@@ -1034,6 +1117,7 @@ export default {
         })
         this.toggleVideo({id, room: this.room, state: false})
         this.toggleAudio({id, room: this.room, state: false})
+        this.addStatKill({id})
       }
     },
 
@@ -1104,8 +1188,70 @@ export default {
         room: this.room
       })
     },
+
+    addStat(stat) {
+      this.$socket.emit('addStat', {
+        ...stat,
+        room: this.room
+      })
+    },
+    addStatMafia() {
+      const players = this.peerConnections
+        .filter(pc => pc.killPlayers.length)
+        .map(pc => ({
+          from: pc.killPlayers,
+          to: pc.id
+        }))
+
+      this.addStat({
+        title: 'mafia',
+        icon: 'mdi-axe',
+        players
+      })
+    },
+    addStatCheckRole({fromId, toId}) {
+      const {role} = this.findPc(fromId)
+
+      this.addStat({
+        title: role,
+        icon: 'mdi-account-check',
+        players: [
+          {
+            from: [fromId],
+            to: toId
+          }
+        ]
+      })
+    },
+    addStatDoctor() {
+      const doctor = this.peerConnections.find(pc => pc.role === 'doctor')
+      const playerIsHealed = this.peerConnections.find(pc => pc.isHeal)
+
+      this.addStat({
+        title: 'doctor',
+        icon: 'mdi-bottle-tonic-plus',
+        players: [
+          {
+            from: [doctor.id],
+            to: playerIsHealed ? playerIsHealed.id : null
+          }
+        ]
+      })
+    },
+    addStatKill({id}) {
+      this.addStat({
+        title: 'dead',
+        players: [
+          {
+            from: [id]
+          }
+        ]
+      })
+    },
+
     startGame() {
       this.$socket.emit('startGame', {room: this.room})
+      this.statistics = []
       this.setGameInfo({text: this.$t('mafia.startGame'), type: 'start'})
       this.gameSteps = [...this.randezvous()]
       this.nextStep(this.gameSteps[0], 5000)
@@ -1176,8 +1322,27 @@ export default {
         () => {
           this.duration = duration
           this.setGameInfo({
+            text: this.$t('mafia.citySleep')
+          })
+        },
+        () => {
+          this.duration = duration
+          this.setGameInfo({
             text: `${this.$t('mafia.night')}: ${this.$t('mafia.mafia')}`,
             type: 'mafia'
+          })
+        },
+        () => {
+          this.duration = duration
+          this.setGameInfo({
+            text: this.$t('mafia.mafiaSleep')
+          })
+          this.addStatMafia()
+        },
+        () => {
+          this.duration = duration
+          this.setGameInfo({
+            text: this.$t('mafia.bossWakeUp')
           })
         },
         () => {
@@ -1190,8 +1355,32 @@ export default {
         () => {
           this.duration = duration
           this.setGameInfo({
+            text: this.$t('mafia.bossSleep')
+          })
+        },
+        () => {
+          this.duration = duration
+          this.setGameInfo({
+            text: this.$t('mafia.detectiveWakeUp')
+          })
+        },
+        () => {
+          this.duration = duration
+          this.setGameInfo({
             text: `${this.$t('mafia.night')}: ${this.$t('mafia.detective')}`,
             type: 'detective'
+          })
+        },
+        () => {
+          this.duration = duration
+          this.setGameInfo({
+            text: this.$t('mafia.detectiveSleep')
+          })
+        },
+        () => {
+          this.duration = duration
+          this.setGameInfo({
+            text: this.$t('mafia.doctorWakeUp')
           })
         },
         () => {
@@ -1200,6 +1389,13 @@ export default {
             text: `${this.$t('mafia.night')}: ${this.$t('mafia.doctor')}`,
             type: 'doctor'
           })
+        },
+        () => {
+          this.duration = duration
+          this.setGameInfo({
+            text: this.$t('mafia.doctorSleep')
+          })
+          this.addStatDoctor()
         },
         () => {
           this.shouldKill()
@@ -1212,6 +1408,12 @@ export default {
     },
     gameDay(duration = 5000) {
       return [
+        () => {
+          this.duration = duration
+          this.setGameInfo({
+            text: this.$t('mafia.cityWakeUp')
+          })
+        },
         this.meeting,
         () => {
           this.duration = duration
@@ -1316,10 +1518,22 @@ export default {
       return mafia.length >= citizen.length || !mafia.length || !this.gameSteps.length
     },
     formatRole(player) {
+      const {role} = this.findPc(this.$socket.id)
       if (player.isVisibleRole || (player.id === this.$socket.id && player.role)) {
+        if (!this.gameIsStarted) {
+          return player.role
+        }
+
+        if (['boss', 'mafia'].includes(player.role) && role === 'detective') {
+          return 'mafia'
+        } else if (player.role === 'doctor' && role === 'detective') {
+          return 'citizen'
+        } else if (!['boss', 'mafia', 'detective'].includes(player.role) && role === 'boss') {
+          return 'citizen'
+        }
+
         return player.role
       }
-      return 'undefined'
     },
     openDialogAlert({text = this.$t('messages.confirm'), method, args = []}) {
       this.dialogAlert = {
@@ -1351,6 +1565,9 @@ export default {
         id: this.$socket.id,
         room: this.room
       })
+    },
+    openDialogStat() {
+      this.dialogStat.value = true
     },
     sortPlayers() {
       const numbers = this.peerConnections
@@ -1406,8 +1623,12 @@ export default {
     cursor: pointer
 
 .bgtext
-  background: rgba(0, 0, 0, .8)
-  border-radius: 10px
+  background: rgba(128, 128, 128, .9)
+  &--left
+    border-radius: 0 8px 0 8px
+    margin-left: 1px
+  &--right
+    border-radius: 8px 0 8px 0
 
 .ghost
   opacity: 0.5
