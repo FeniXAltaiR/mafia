@@ -112,7 +112,12 @@
                 </template>
                 <v-hover v-slot:default="{hover}" open-delay="200">
                   <div>
-                    <video :srcObject.prop="player.stream" autoplay :style="getVideoStyle"></video>
+                    <video
+                      :srcObject.prop="player.stream"
+                      autoplay
+                      :style="getVideoStyle"
+                      :data-id="player.id"
+                    ></video>
                     <div
                       v-if="!player.isVideo"
                       class="d-flex px-2 pb-3 pt-1 align-center justify-center white--text"
@@ -331,6 +336,14 @@
         </template>
       </v-col>
     </draggable>
+    <!-- <v-col md="12" v-for="player in peerConnections" :key="player.id" style="position: relative;">
+      <v-row class="justify-center px-2">
+        <v-img :src="player.src" alt="" style="border-radius: 50%; height: 200px; max-width: 200px"></v-img>
+      </v-row>
+      <v-row class="justify-center px-2">
+        <span>{{player.displayName}}</span>
+      </v-row>
+    </v-col> -->
     <v-dialog v-model="dialogSettings.value" persistent max-width="600px">
       <v-card>
         <v-card-title>
@@ -382,6 +395,7 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+    <canvas class="d-none"></canvas>
   </div>
 </template>
 
@@ -718,6 +732,9 @@ export default {
       //     'https://computeengineondemand.appspot.com/turn?username=41784574&key=4080218913'
       //   )
       // }
+
+      // const audio = new Audio(require('@/assets/audio/test.mp3'))
+      // audio.play()
     },
     gotStream(stream) {
       // console.log('Adding local stream.')
@@ -1094,6 +1111,7 @@ export default {
       this.nextStep(this.gameSteps[0], 5000)
       this.gameIsStarted = true
       this.isPause = false
+      this.makeScreenshots()
     },
     pauseGame() {
       this.isPause = !this.isPause
@@ -1114,6 +1132,23 @@ export default {
         ...info,
         room: this.room
       })
+    },
+    makeScreenshots() {
+      const canvas = document.querySelector('canvas')
+      const videos = document.querySelectorAll('video')
+
+      videos.forEach(video => {
+        canvas.width = video.videoWidth
+        canvas.height = video.videoHeight
+        canvas.getContext('2d').drawImage(video, 0, 0)
+
+        const src = canvas.toDataURL('image/png')
+        const player = this.findPc(video.dataset.id)
+        this.$set(player, 'src', src)
+      })
+
+      canvas.width = 0
+      canvas.height = 0
     },
     activePlayer({id, ids, role}) {
       return role && [id, ...ids].includes(this.gameInfo.active)
