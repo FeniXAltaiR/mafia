@@ -312,7 +312,7 @@
                           </v-slide-y-reverse-transition>
                           <v-slide-x-transition>
                             <div class="bgtext bgtext--right px-1 py-1">
-                              <span>{{ formatRole(player) || $t('mafia.undefinedRole') }}</span>
+                              <span>{{ $t(`mafia.${formatRole(player)}`) }}</span>
                             </div>
                           </v-slide-x-transition>
                         </div>
@@ -405,16 +405,17 @@
     </v-dialog>
     <v-dialog v-model="dialogStat.value" persistent max-width="1280px">
       <v-row
-        class="justify-end align-center mx-0 py-1 px-1"
+        class="justify-space-between align-center mx-0 py-2 px-1 white--text"
         style="background: rgba(25, 118, 210, .9)"
       >
+        <span class="text-center display-2">{{ $t('mafia.statistics') }}</span>
         <v-btn icon small @click="dialogStat.value = false" class="white--text">
           <v-icon>mdi-close</v-icon>
         </v-btn>
       </v-row>
       <v-divider class="info"></v-divider>
       <v-card
-        class="px-2 pt-2"
+        class="px-2 pt-2 white--text"
         style="background: rgba(25, 118, 210, .78)"
         flat
         tile
@@ -430,27 +431,35 @@
                 :key="id"
                 class="d-inline-flex flex-column justify-center mr-2"
               >
+                <span class="text-center subtitle-2">{{ findPc(id).displayName }}</span>
                 <v-img
                   class="mx-auto"
                   :src="findPc(id).src"
                   style="border-radius: 50%; height: 80px; max-width: 80px"
                 ></v-img>
-                <span class="text-center subtitle-2">{{ findPc(id).displayName }}</span>
+                <span class="text-center subtitle-2">{{ $t(`mafia.${findPc(id).role}`) }}</span>
               </div>
             </v-row>
           </v-col>
           <v-col v-if="players.to">
             <v-row class="justify-end align-center mx-0">
-              <v-icon :class="stat.iconClass" class="mr-2 white pa-1" style="border-radius: 50%">{{
-                stat.icon
-              }}</v-icon>
+              <v-icon
+                v-if="stat.icon"
+                :class="stat.iconClass"
+                class="mr-2 white pa-1"
+                style="border-radius: 50%"
+                >{{ stat.icon }}</v-icon
+              >
               <div class="d-inline-flex flex-column justify-center ml-2">
+                <span class="text-center subtitle-2">{{ findPc(players.to).displayName }}</span>
                 <v-img
                   class="mx-auto"
                   :src="findPc(players.to).src"
                   style="border-radius: 50%; height: 80px; max-width: 80px"
                 ></v-img>
-                <span class="text-center subtitle-2">{{ findPc(players.to).displayName }}</span>
+                <span class="text-center subtitle-2">{{
+                  $t(`mafia.${findPc(players.to).role}`)
+                }}</span>
               </div>
             </v-row>
           </v-col>
@@ -1123,8 +1132,8 @@ export default {
         })
         this.toggleVideo({id, room: this.room, state: false})
         this.toggleAudio({id, room: this.room, state: false})
+        this.addStatKill({id})
       }
-      this.addStatKill({id})
     },
 
     canHeal({id}) {
@@ -1201,6 +1210,18 @@ export default {
         room: this.room
       })
     },
+    addStatPlayers() {
+      const players = [
+        {
+          from: this.peerConnections.map(pc => pc.id)
+        }
+      ]
+
+      this.addStat({
+        title: 'players',
+        players
+      })
+    },
     addStatMafia() {
       const players = this.peerConnections
         .filter(pc => pc.killPlayers.length)
@@ -1271,7 +1292,7 @@ export default {
         }))
 
       this.addStat({
-        title: this.isSecondVoting ? 'secondVoting' : 'voting',
+        title: this.isSecondVoting ? 'secondVotingResult' : 'votingResult',
         icon: 'mdi-account-check',
         iconClass: 'primary--text',
         players
@@ -1293,12 +1314,13 @@ export default {
     startGame() {
       this.$socket.emit('startGame', {room: this.room})
       this.statistics = []
-      this.setGameInfo({text: this.$t('mafia.startGame'), type: 'start'})
+      this.setGameInfo({text: this.$t('mafia.startingGame'), type: 'start'})
       this.gameSteps = [...this.randezvous()]
       this.nextStep(this.gameSteps[0], 5000)
       this.gameIsStarted = true
       this.isPause = false
       this.makeScreenshots()
+      this.addStatPlayers()
     },
     pauseGame() {
       this.isPause = !this.isPause
@@ -1365,6 +1387,13 @@ export default {
           this.setGameInfo({
             text: this.$t('mafia.citySleep')
           })
+        },
+        () => {
+          this.duration = duration
+          this.setGameInfo({
+            text: this.$t('mafia.mafiaWakeUp')
+          })
+          this.addStatMafia()
         },
         () => {
           this.duration = duration
@@ -1502,7 +1531,7 @@ export default {
         },
         () => {
           this.duration = duration
-          this.setGameInfo({text: this.$t('mafia.voting'), type: 'voting'})
+          this.setGameInfo({text: this.$t('mafia.votingResult'), type: 'voting'})
           this.addStatVoting()
         },
         () => {
@@ -1562,7 +1591,7 @@ export default {
     },
     formatRole(player) {
       const {role} = this.findPc(this.$socket.id)
-      if (player.isVisibleRole || (player.id === this.$socket.id && player.role)) {
+      if ((player.isVisibleRole && player.role) || (player.id === this.$socket.id && player.role)) {
         if (!this.gameIsStarted) {
           return player.role
         }
@@ -1577,6 +1606,8 @@ export default {
 
         return player.role
       }
+
+      return 'undefinedRole'
     },
     openDialogAlert({text = this.$t('messages.confirm'), method, args = []}) {
       this.dialogAlert = {
