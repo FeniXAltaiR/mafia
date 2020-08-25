@@ -236,7 +236,7 @@
                             </v-slide-y-transition>
                           </v-row>
                         </v-col>
-                        <v-col md="5" class="py-1 d-flex justify-end">
+                        <v-col md="5" class="py-1 pr-4 d-flex justify-end">
                           <v-slide-x-reverse-transition>
                             <v-btn
                               v-if="canCheckRole(player)"
@@ -291,7 +291,7 @@
                       </v-row>
                       <div class="d-flex justify-space-between align-end">
                         <div class="d-flex align-end">
-                          <div class="bgtext bgtext--left px-1 py-2">
+                          <div class="bgtext bgtext--left px-1 py-1">
                             <span>{{ findIndexPc(player.id) + 1 }}. </span>
                             <span>{{ findPc(player.id).displayName }}</span>
                             <span v-if="findPc(player.id).isInitiator">
@@ -311,8 +311,8 @@
                             >
                           </v-slide-y-reverse-transition>
                           <v-slide-x-transition>
-                            <div class="bgtext bgtext--right px-1 py-2">
-                              <span>{{ formatRole(player) }}</span>
+                            <div class="bgtext bgtext--right px-1 py-1">
+                              <span>{{ formatRole(player) || $t('mafia.undefinedRole') }}</span>
                             </div>
                           </v-slide-x-transition>
                         </div>
@@ -637,7 +637,12 @@ export default {
       this.gameInfo = info
     },
     addStat(stat) {
-      this.statistics.push(stat)
+      const lastEl = this.statistics[this.statistics.length - 1] ?? {}
+      if (lastEl.title === stat.title) {
+        lastEl.players = [...lastEl.players, stat.players]
+      } else {
+        this.statistics.push(stat)
+      }
     },
     statistics(stat) {
       this.statistics = stat
@@ -1020,6 +1025,7 @@ export default {
     nomination({id}) {
       this.canNominate = false
       this.$socket.emit('nomination', {id, room: this.room})
+      this.addStatNomination({id})
     },
 
     canVoteForExile({id, isAlive, votePlayers, isNominate}) {
@@ -1117,8 +1123,8 @@ export default {
         })
         this.toggleVideo({id, room: this.room, state: false})
         this.toggleAudio({id, room: this.room, state: false})
-        this.addStatKill({id})
       }
+      this.addStatKill({id})
     },
 
     canHeal({id}) {
@@ -1206,6 +1212,7 @@ export default {
       this.addStat({
         title: 'mafia',
         icon: 'mdi-axe',
+        iconClass: 'error--text',
         players
       })
     },
@@ -1214,7 +1221,8 @@ export default {
 
       this.addStat({
         title: role,
-        icon: 'mdi-account-check',
+        icon: 'mdi-magnify',
+        iconClass: 'warning--text',
         players: [
           {
             from: [fromId],
@@ -1224,12 +1232,15 @@ export default {
       })
     },
     addStatDoctor() {
-      const doctor = this.peerConnections.find(pc => pc.role === 'doctor')
+      const doctor = this.peerConnections.find(pc => pc.role === 'doctor' && pc.isAlive)
+      if (!doctor) return
+
       const playerIsHealed = this.peerConnections.find(pc => pc.isHeal)
 
       this.addStat({
         title: 'doctor',
         icon: 'mdi-bottle-tonic-plus',
+        iconClass: 'primary--text',
         players: [
           {
             from: [doctor.id],
@@ -1238,9 +1249,39 @@ export default {
         ]
       })
     },
+    addStatNomination({id}) {
+      this.addStat({
+        title: 'nomination',
+        icon: 'mdi-account-alert',
+        iconClass: 'primary--text',
+        players: [
+          {
+            from: [this.$socket.id],
+            to: id
+          }
+        ]
+      })
+    },
+    addStatVoting() {
+      const players = this.peerConnections
+        .filter(pc => pc.votePlayers.length)
+        .map(pc => ({
+          from: pc.votePlayers,
+          to: pc.id
+        }))
+
+      this.addStat({
+        title: this.isSecondVoting ? 'secondVoting' : 'voting',
+        icon: 'mdi-account-check',
+        iconClass: 'primary--text',
+        players
+      })
+    },
     addStatKill({id}) {
       this.addStat({
         title: 'dead',
+        icon: 'mdi-emoticon-dead',
+        iconClass: 'error--text',
         players: [
           {
             from: [id]
@@ -1462,6 +1503,7 @@ export default {
         () => {
           this.duration = duration
           this.setGameInfo({text: this.$t('mafia.voting'), type: 'voting'})
+          this.addStatVoting()
         },
         () => {
           this.exile()
@@ -1494,6 +1536,7 @@ export default {
             id,
             room: this.room
           })
+          this.addStatKill({id})
           this.toggleVideo({id, room: this.room, state: false})
           this.toggleAudio({id, room: this.room, state: false})
           this.setGameInfo({text: this.$t('mafia.prepareToTheNight')})

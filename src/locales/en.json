@@ -33,7 +33,8 @@
     "lastWord": "Last word",
     "prepareToTheNight": "Prepare to the night",
     "randezvous": "randezvous",
-    "confirm": "Confirm"
+    "confirm": "Confirm",
+    "dead": "Dead"
   },
   "messages": {
     "confirm": "Confirm operation"

@@ -33,7 +33,8 @@
     "lastWord": "Последнее слово",
     "prepareToTheNight": "Начинается ночь",
     "randezvous": "Знакомство",
-    "confirm": "Подтвердить"
+    "confirm": "Подтвердить",
+    "dead": "Убийство"
   },
   "messages": {
     "confirm": "Подтвердите операцию"
