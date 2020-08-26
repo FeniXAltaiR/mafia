@@ -570,6 +570,10 @@ export default {
       this.time = time
       this.duration = duration
     },
+    speechSpeak({text}) {
+      this.speechSynthesisUtterance.text = text
+      window.speechSynthesis.speak(this.speechSynthesisUtterance)
+    },
     sortPlayers({players}) {
       players.forEach(player => {
         this.$set(this.findPc(player.id), 'order', player.index)
@@ -976,8 +980,7 @@ export default {
       this.speechSynthesisUtterance.rate = 0.8
     },
     speechSpeak({text}) {
-      this.speechSynthesisUtterance.text = text
-      window.speechSynthesis.speak(this.speechSynthesisUtterance)
+      this.$socket.emit('speechSpeak', {text, room: this.room})
     },
 
     findPc(id) {

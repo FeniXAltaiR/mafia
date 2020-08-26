@@ -210,6 +210,10 @@ io.on('connect', socket => {
     })
   })
 
+  socket.on('speechSpeak', ({room, text}) => {
+    io.to(room).emit('speechSpeak', {text})
+  })
+
   socket.on('voteForKill', ({fromId, toId, room}) => {
     io.to(room).emit('voteForKill', {
       fromId,
