@@ -422,49 +422,51 @@
         v-for="(stat, index) in statistics"
         :key="index"
       >
-        <h2 v-if="stat.title">{{ $t(`mafia.${stat.title}`) }}</h2>
-        <v-row class="justify-space-between" v-for="(players, i) in stat.players" :key="i">
-          <v-col>
-            <v-row class="align-center mx-0">
-              <div
-                v-for="id in players.from"
-                :key="id"
-                class="d-inline-flex flex-column justify-center mr-2"
-              >
-                <span class="text-center subtitle-2">{{ findPc(id).displayName }}</span>
-                <v-img
-                  class="mx-auto"
-                  :src="findPc(id).src"
-                  style="border-radius: 50%; height: 80px; max-width: 80px"
-                ></v-img>
-                <span class="text-center subtitle-2">{{ $t(`mafia.${findPc(id).role}`) }}</span>
-              </div>
-            </v-row>
-          </v-col>
-          <v-col v-if="players.to">
-            <v-row class="justify-end align-center mx-0">
-              <v-icon
-                v-if="stat.icon"
-                :class="stat.iconClass"
-                class="mr-2 white pa-1"
-                style="border-radius: 50%"
-                >{{ stat.icon }}</v-icon
-              >
-              <div class="d-inline-flex flex-column justify-center ml-2">
-                <span class="text-center subtitle-2">{{ findPc(players.to).displayName }}</span>
-                <v-img
-                  class="mx-auto"
-                  :src="findPc(players.to).src"
-                  style="border-radius: 50%; height: 80px; max-width: 80px"
-                ></v-img>
-                <span class="text-center subtitle-2">{{
-                  $t(`mafia.${findPc(players.to).role}`)
-                }}</span>
-              </div>
-            </v-row>
-          </v-col>
-        </v-row>
-        <v-divider class="info"></v-divider>
+        <template v-if="stat.players.length">
+          <h2 v-if="stat.title">{{ $t(`mafia.${stat.title}`) }}</h2>
+          <v-row class="justify-space-between" v-for="(players, i) in stat.players" :key="i">
+            <v-col>
+              <v-row class="align-center mx-0">
+                <div
+                  v-for="id in players.from"
+                  :key="id"
+                  class="d-inline-flex flex-column justify-center mr-2"
+                >
+                  <span class="text-center subtitle-2">{{ findPc(id).displayName }}</span>
+                  <v-img
+                    class="mx-auto"
+                    :src="findPc(id).src"
+                    style="border-radius: 50%; height: 80px; max-width: 80px"
+                  ></v-img>
+                  <span class="text-center subtitle-2">{{ $t(`mafia.${findPc(id).role}`) }}</span>
+                </div>
+              </v-row>
+            </v-col>
+            <v-col v-if="players.to">
+              <v-row class="justify-end align-center mx-0">
+                <v-icon
+                  v-if="stat.icon"
+                  :class="stat.iconClass"
+                  class="mr-2 white pa-1"
+                  style="border-radius: 50%"
+                  >{{ stat.icon }}</v-icon
+                >
+                <div class="d-inline-flex flex-column justify-center ml-2">
+                  <span class="text-center subtitle-2">{{ findPc(players.to).displayName }}</span>
+                  <v-img
+                    class="mx-auto"
+                    :src="findPc(players.to).src"
+                    style="border-radius: 50%; height: 80px; max-width: 80px"
+                  ></v-img>
+                  <span class="text-center subtitle-2">{{
+                    $t(`mafia.${findPc(players.to).role}`)
+                  }}</span>
+                </div>
+              </v-row>
+            </v-col>
+          </v-row>
+          <v-divider class="info"></v-divider>
+        </template>
       </v-card>
     </v-dialog>
     <canvas class="d-none"></canvas>
@@ -493,6 +495,7 @@ export default {
       ]
     },
     room: null,
+    speechSynthesisUtterance: null,
     peerConnections: [],
     statistics: [],
     time: '00:00',
@@ -796,7 +799,7 @@ export default {
   },
 
   mounted() {
-    // this.init()
+    this.setSpeechSettings()
   },
 
   methods: {
@@ -963,6 +966,18 @@ export default {
         xhr.open('GET', turnURL, true)
         xhr.send()
       }
+    },
+
+    setSpeechSettings() {
+      const voices = window.speechSynthesis.getVoices()
+
+      this.speechSynthesisUtterance = new SpeechSynthesisUtterance()
+      this.speechSynthesisUtterance.voice = voices[17]
+      this.speechSynthesisUtterance.rate = 0.8
+    },
+    speechSpeak({text}) {
+      this.speechSynthesisUtterance.text = text
+      window.speechSynthesis.speak(this.speechSynthesisUtterance)
     },
 
     findPc(id) {
@@ -1387,12 +1402,14 @@ export default {
           this.setGameInfo({
             text: this.$t('mafia.citySleep')
           })
+          this.speechSpeak({text: this.$t('mafia.citySleep')})
         },
         () => {
           this.duration = duration
           this.setGameInfo({
             text: this.$t('mafia.mafiaWakeUp')
           })
+          this.speechSpeak({text: this.$t('mafia.mafiaWakeUp')})
           this.addStatMafia()
         },
         () => {
@@ -1407,6 +1424,7 @@ export default {
           this.setGameInfo({
             text: this.$t('mafia.mafiaSleep')
           })
+          this.speechSpeak({text: this.$t('mafia.mafiaSleep')})
           this.addStatMafia()
         },
         () => {
@@ -1414,6 +1432,7 @@ export default {
           this.setGameInfo({
             text: this.$t('mafia.bossWakeUp')
           })
+          this.speechSpeak({text: this.$t('mafia.bossWakeUp')})
         },
         () => {
           this.duration = duration
@@ -1427,12 +1446,14 @@ export default {
           this.setGameInfo({
             text: this.$t('mafia.bossSleep')
           })
+          this.speechSpeak({text: this.$t('mafia.bossSleep')})
         },
         () => {
           this.duration = duration
           this.setGameInfo({
             text: this.$t('mafia.detectiveWakeUp')
           })
+          this.speechSpeak({text: this.$t('mafia.detectiveWakeUp')})
         },
         () => {
           this.duration = duration
@@ -1446,12 +1467,14 @@ export default {
           this.setGameInfo({
             text: this.$t('mafia.detectiveSleep')
           })
+          this.speechSpeak({text: this.$t('mafia.detectiveSleep')})
         },
         () => {
           this.duration = duration
           this.setGameInfo({
             text: this.$t('mafia.doctorWakeUp')
           })
+          this.speechSpeak({text: this.$t('mafia.doctorWakeUp')})
         },
         () => {
           this.duration = duration
@@ -1465,6 +1488,7 @@ export default {
           this.setGameInfo({
             text: this.$t('mafia.doctorSleep')
           })
+          this.speechSpeak({text: this.$t('mafia.doctorSleep')})
           this.addStatDoctor()
         },
         () => {
@@ -1483,6 +1507,7 @@ export default {
           this.setGameInfo({
             text: this.$t('mafia.cityWakeUp')
           })
+          this.speechSpeak({text: this.$t('mafia.cityWakeUp')})
         },
         this.meeting,
         () => {
@@ -1655,7 +1680,11 @@ export default {
       })
     },
     goToNextStep() {
-      this.duration = 0
+      const f = this.gameSteps.shift()
+      f()
+      if (this.duration < 10000) {
+        this.duration = 10000
+      }
     },
     nextStep(f, duration = 5000) {
       this.duration = duration
