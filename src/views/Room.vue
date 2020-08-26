@@ -3,12 +3,41 @@
     <v-row class="px-5">
       <v-col md="5">
         <v-row class="align-center">
-          <span class="mr-2 white--text">{{ gameInfo.text }}</span>
+          <h3
+            class="mr-2 white--text"
+            :class="{
+              'primary--text': gameInfo.text === $t('mafia.citizenWin'),
+              'error--text': gameInfo.text === $t('mafia.mafiaWin')
+            }"
+          >
+            {{ gameInfo.text }}
+          </h3>
         </v-row>
       </v-col>
       <v-col md="2">
         <v-row class="justify-center align-center">
-          <span class="mr-2 white--text">{{ time }}</span>
+          <h3 class="mr-2 white--text">{{ time }}</h3>
+          <v-menu absolute>
+            <template v-slot:activator="{on}">
+              <v-slide-x-transition>
+                <v-btn icon v-on="on" class="white--text" v-if="!findPc($socket.id)">
+                  <v-icon>mdi-lan-connect</v-icon>
+                </v-btn>
+              </v-slide-x-transition>
+            </template>
+            <v-list dense>
+              <v-list-item @click="init('getUserMedia')">
+                <v-list-item-title>{{ $t('mafia.webcam') }}</v-list-item-title>
+              </v-list-item>
+              <v-list-item @click="init('getDisplayMedia')">
+                <v-list-item-title>{{ $t('mafia.screen') }}</v-list-item-title>
+              </v-list-item>
+            </v-list>
+          </v-menu>
+        </v-row>
+      </v-col>
+      <v-col md="5">
+        <v-row class="align-center justify-end">
           <v-tooltip open-delay="250" top v-if="gameIsStarted && isInitiator">
             <template v-slot:activator="{on}">
               <v-btn icon small @click="pauseGame" class="white--text" v-on="on">
@@ -71,23 +100,6 @@
             </template>
             <span>{{ $t('mafia.statistics') }}</span>
           </v-tooltip>
-          <v-menu absolute>
-            <template v-slot:activator="{on}">
-              <v-slide-x-transition>
-                <v-btn icon v-on="on" class="white--text" v-if="!findPc($socket.id)">
-                  <v-icon>mdi-lan-connect</v-icon>
-                </v-btn>
-              </v-slide-x-transition>
-            </template>
-            <v-list dense>
-              <v-list-item @click="init('getUserMedia')">
-                <v-list-item-title>{{ $t('mafia.webcam') }}</v-list-item-title>
-              </v-list-item>
-              <v-list-item @click="init('getDisplayMedia')">
-                <v-list-item-title>{{ $t('mafia.screen') }}</v-list-item-title>
-              </v-list-item>
-            </v-list>
-          </v-menu>
         </v-row>
       </v-col>
     </v-row>
@@ -291,7 +303,7 @@
                       </v-row>
                       <div class="d-flex justify-space-between align-end">
                         <div class="d-flex align-end">
-                          <div class="bgtext bgtext--left px-1 py-1">
+                          <div class="bgtext bgtext--left px-1 py-2">
                             <span>{{ findIndexPc(player.id) + 1 }}. </span>
                             <span>{{ findPc(player.id).displayName }}</span>
                             <span v-if="findPc(player.id).isInitiator">
@@ -312,7 +324,33 @@
                           </v-slide-y-reverse-transition>
                           <v-slide-x-transition>
                             <div class="bgtext bgtext--right px-1 py-1">
-                              <span>{{ $t(`mafia.${formatRole(player)}`) }}</span>
+                              <span class="mr-2">{{ $t(`mafia.${formatRole(player)}`) }}</span>
+                              <v-slide-x-transition>
+                                <v-icon v-if="formatRole(player) === 'mafia'" class="error--text"
+                                  >mdi-alien</v-icon
+                                >
+                                <v-icon
+                                  v-else-if="formatRole(player) === 'boss'"
+                                  class="error--text"
+                                  >mdi-alpha-w-circle</v-icon
+                                >
+                                <v-icon
+                                  v-else-if="formatRole(player) === 'citizen'"
+                                  class="success--text"
+                                  >mdi-baby-face</v-icon
+                                >
+                                <v-icon
+                                  v-else-if="formatRole(player) === 'detective'"
+                                  class="warning--text"
+                                  >mdi-binoculars</v-icon
+                                >
+                                <v-icon
+                                  v-else-if="formatRole(player) === 'doctor'"
+                                  class="success--text"
+                                  >mdi-medical-bag</v-icon
+                                >
+                                <v-icon v-else class="grey--text">mdi-artstation</v-icon>
+                              </v-slide-x-transition>
                             </div>
                           </v-slide-x-transition>
                         </div>
@@ -572,6 +610,7 @@ export default {
     },
     speechSpeak({text}) {
       this.speechSynthesisUtterance.text = text
+      window.speechSynthesis.cancel()
       window.speechSynthesis.speak(this.speechSynthesisUtterance)
     },
     sortPlayers({players}) {
@@ -651,6 +690,23 @@ export default {
     },
     setGameInfo(info) {
       this.gameInfo = info
+    },
+    makeScreenshots() {
+      const canvas = document.querySelector('canvas')
+      const videos = document.querySelectorAll('video')
+
+      videos.forEach(video => {
+        canvas.width = video.videoWidth
+        canvas.height = video.videoHeight
+        canvas.getContext('2d').drawImage(video, 0, 0)
+
+        const src = canvas.toDataURL('image/png')
+        const player = this.findPc(video.dataset.id)
+        this.$set(player, 'src', src)
+      })
+
+      canvas.width = 0
+      canvas.height = 0
     },
     addStat(stat) {
       const lastEl = this.statistics[this.statistics.length - 1] ?? {}
@@ -1349,9 +1405,7 @@ export default {
         this.toggleAudio({id, room, state: true})
       })
       this.$socket.emit('endGame', {room: this.room})
-      this.setGameInfo({text: this.$t('mafia.endGame'), type: 'end'})
       clearInterval(this.timer)
-      this.gameIsStarted = false
     },
     setGameInfo(info) {
       this.gameInfo = info
@@ -1361,21 +1415,7 @@ export default {
       })
     },
     makeScreenshots() {
-      const canvas = document.querySelector('canvas')
-      const videos = document.querySelectorAll('video')
-
-      videos.forEach(video => {
-        canvas.width = video.videoWidth
-        canvas.height = video.videoHeight
-        canvas.getContext('2d').drawImage(video, 0, 0)
-
-        const src = canvas.toDataURL('image/png')
-        const player = this.findPc(video.dataset.id)
-        this.$set(player, 'src', src)
-      })
-
-      canvas.width = 0
-      canvas.height = 0
+      this.$socket.emit('makeScreenshots', {room: this.room})
     },
     activePlayer({id, ids, role}) {
       return role && [id, ...ids].includes(this.gameInfo.active)
@@ -1413,7 +1453,6 @@ export default {
             text: this.$t('mafia.mafiaWakeUp')
           })
           this.speechSpeak({text: this.$t('mafia.mafiaWakeUp')})
-          this.addStatMafia()
         },
         () => {
           this.duration = duration
@@ -1563,6 +1602,7 @@ export default {
           this.addStatVoting()
         },
         () => {
+          this.duration = 1000
           this.exile()
         }
       ]
@@ -1615,7 +1655,20 @@ export default {
           !['boss', 'mafia'].includes(player.role) && player.isAlive && player.role && player.stream
       )
 
-      return mafia.length >= citizen.length || !mafia.length || !this.gameSteps.length
+      const getWinner = () => {
+        if (mafia.length >= citizen.length) {
+          return 'mafiaWin'
+        } else if (!mafia.length) {
+          return 'citizenWin'
+        } else {
+          return null
+        }
+      }
+
+      return {
+        done: mafia.length >= citizen.length || !mafia.length,
+        winner: getWinner()
+      }
     },
     formatRole(player) {
       const {role} = this.findPc(this.$socket.id)
@@ -1626,7 +1679,7 @@ export default {
 
         if (['boss', 'mafia'].includes(player.role) && role === 'detective') {
           return 'mafia'
-        } else if (player.role === 'doctor' && role === 'detective') {
+        } else if (!['boss', 'mafia'].includes(player.role) && role === 'detective') {
           return 'citizen'
         } else if (!['boss', 'mafia', 'detective'].includes(player.role) && role === 'boss') {
           return 'citizen'
@@ -1683,11 +1736,12 @@ export default {
       })
     },
     goToNextStep() {
-      const f = this.gameSteps.shift()
-      f()
-      if (this.duration < 10000) {
-        this.duration = 10000
-      }
+      this.duration = 0
+      // const f = this.gameSteps.shift()
+      // f()
+      // if (this.duration < 10000) {
+      //   this.duration = 10000
+      // }
     },
     nextStep(f, duration = 5000) {
       this.duration = duration
@@ -1703,8 +1757,11 @@ export default {
 
           if (this.duration <= 0) {
             this.duration = null
-            if (this.shouldEndGame()) {
+            const {done, winner} = this.shouldEndGame()
+            if (done) {
               this.endGame()
+              this.setGameInfo({text: this.$t(`mafia.${winner}`), type: 'end'})
+              this.speechSpeak({text: this.$t(`mafia.${winner}`)})
             } else {
               f()
               clearInterval(this.timer)

@@ -51,7 +51,9 @@
     "detectiveWakeUp": "Комиссар просыпается",
     "detectiveSleep": "Комиссар засыпает",
     "doctorWakeUp": "Доктор просыпается",
-    "doctorSleep": "Доктор засыпает"
+    "doctorSleep": "Доктор засыпает",
+    "mafiaWin": "Мафия победила",
+    "citizenWin": "Жители победили"
   },
   "messages": {
     "confirm": "Подтвердите операцию"

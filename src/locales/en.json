@@ -32,8 +32,8 @@
     "nomination": "Nomination",
     "voteForExile": "Voting for exile",
     "voting": "Finish voting",
-    "votingResult": "EN Результаты голосования",
-    "secondVotingResult": "EN Результаты повторного голосования",
+    "votingResult": "Results of the voting",
+    "secondVotingResult": "Results of the second voting",
     "explanation": "Explanation",
     "lastWord": "Last word",
     "prepareToTheNight": "Prepare to the night",
@@ -51,7 +51,9 @@
     "detectiveWakeUp": "The detective is waking up",
     "detectiveSleep": "The detective is falling asleep",
     "doctorWakeUp": "The doctor is waking up",
-    "doctorSleep": "The doctor is falling asleep"
+    "doctorSleep": "The doctor is falling asleep",
+    "mafiaWin": "Mafia has won",
+    "citizenWin": "Citizens have won"
   },
   "messages": {
     "confirm": "Confirm operation"

@@ -141,6 +141,10 @@ io.on('connect', socket => {
     socket.to(info.room).emit('setGameInfo', info)
   })
 
+  socket.on('makeScreenshots', ({room}) => {
+    io.to(room).emit('makeScreenshots')
+  })
+
   socket.on('addStat', ({room, ...stat}) => {
     io.to(room).emit('addStat', stat)
   })
