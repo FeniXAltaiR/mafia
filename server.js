@@ -64,8 +64,8 @@ io.on('connect', socket => {
     socket.to(settings.id).emit('updatePlayerInfo', settings)
   })
 
-  socket.on('updatePlayerRoom', ({id, ...settings}) => {
-    socket.to(settings.id).emit('updatePlayerRoom', settings)
+  socket.on('updateRoomInfo', ({id, ...settings}) => {
+    socket.to(settings.id).emit('updateRoomInfo', settings)
   })
 
   socket.on('toggleVideo', ({id, room, state}) => {

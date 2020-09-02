@@ -1444,7 +1444,13 @@ export default {
     },
 
     // gameSteps
-    setGameStep({duration = this.duration, info = null, speech = null, emit = null, methods = []}) {
+    setGameStep({
+      duration = this.duration,
+      info = null,
+      speech = null,
+      emit = null,
+      methods = []
+    } = {}) {
       this.duration = duration
 
       if (info) {
@@ -1459,8 +1465,8 @@ export default {
         this.$socket.emit(emit.name, emit.options)
       }
 
-      methods.forEach(method => {
-        this[method.f](...method.args)
+      methods.forEach(({f, args = []}) => {
+        this[f](...args)
       })
     },
     setGameNight() {
@@ -1476,7 +1482,7 @@ export default {
       this.gameSteps.splice(-1, 0, ...this.gameVoting())
       this.$socket.emit('gameVoting', {room: this.room})
     },
-    setGameExplanation(duration = 5000) {
+    setGameExplanation({duration = 5000}) {
       this.peerConnections
         .filter(player => player.isAlive && player.isNominate)
         .sort((playerA, playerB) => (playerA.nominateIndex > playerB.nominateIndex ? 1 : -1))
@@ -1823,7 +1829,7 @@ export default {
         }
       ]
     },
-    meeting(duration = 10000) {
+    meeting({duration = 10000}) {
       this.$socket.emit('resetGameNight', {room: this.room})
       this.duration = duration
       this.setGameInfo({text: this.$t('mafia.meeting'), type: 'meeting'})
@@ -1922,8 +1928,8 @@ export default {
     goToNextStep() {
       this.duration = 0
     },
-    nextStep({method, options}, duration = 5000) {
-      this.duration = options.duration || duration
+    nextStep({method, options = {}}, duration = null) {
+      this.duration = options.duration || duration || this.duration
       this.timer = setInterval(() => {
         if (!this.isPause) {
           this.duration = Math.max(0, this.duration - 1000)
