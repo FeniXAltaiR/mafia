@@ -16,11 +16,11 @@
       </v-col>
       <v-col md="2">
         <v-row class="justify-center align-center">
-          <h3 class="mr-2 white--text">{{ time }}</h3>
+          <h3 class="mr-2 white--text">{{ getTime }}</h3>
           <v-menu absolute>
             <template v-slot:activator="{on}">
               <v-slide-x-transition>
-                <v-btn icon v-on="on" class="white--text" v-if="!findPc($socket.id)">
+                <v-btn icon v-on="on" class="white--text" v-if="!findPc($socket.id).stream">
                   <v-icon>mdi-lan-connect</v-icon>
                 </v-btn>
               </v-slide-x-transition>
@@ -38,7 +38,7 @@
       </v-col>
       <v-col md="5">
         <v-row class="align-center justify-end">
-          <v-tooltip open-delay="250" top v-if="gameIsStarted && isInitiator">
+          <v-tooltip open-delay="250" top v-if="gameIsStarted && findPc($socket.id).isInitiator">
             <template v-slot:activator="{on}">
               <v-btn icon small @click="pauseGame" class="white--text" v-on="on">
                 <v-icon>mdi-{{ isPause ? 'play' : 'pause' }}</v-icon>
@@ -46,7 +46,7 @@
             </template>
             <span>{{ isPause ? $t('mafia.play') : $t('mafia.pause') }}</span>
           </v-tooltip>
-          <v-tooltip open-delay="250" top v-if="!gameIsStarted && isInitiator">
+          <v-tooltip open-delay="250" top v-if="!gameIsStarted && findPc($socket.id).isInitiator">
             <template v-slot:activator="{on}">
               <v-btn icon small @click="startGame" class="white--text" v-on="on">
                 <v-icon>mdi-play</v-icon>
@@ -54,7 +54,7 @@
             </template>
             <span>{{ $t('mafia.startGame') }}</span>
           </v-tooltip>
-          <v-tooltip open-delay="250" top v-if="gameIsStarted && isInitiator">
+          <v-tooltip open-delay="250" top v-if="gameIsStarted && findPc($socket.id).isInitiator">
             <template v-slot:activator="{on}">
               <v-btn icon small @click="addDuration" class="white--text" v-on="on">
                 <v-icon>mdi-plus</v-icon>
@@ -62,7 +62,7 @@
             </template>
             <span>{{ $t('mafia.addDuration') }}</span>
           </v-tooltip>
-          <v-tooltip open-delay="250" top v-if="gameIsStarted && isInitiator">
+          <v-tooltip open-delay="250" top v-if="gameIsStarted && findPc($socket.id).isInitiator">
             <template v-slot:activator="{on}">
               <v-btn icon small @click="goToNextStep" class="white--text" v-on="on">
                 <v-icon>mdi-skip-next</v-icon>
@@ -70,7 +70,7 @@
             </template>
             <span>{{ $t('mafia.goToNextStep') }}</span>
           </v-tooltip>
-          <v-tooltip open-delay="250" top v-if="!gameIsStarted && isInitiator">
+          <v-tooltip open-delay="250" top v-if="!gameIsStarted && findPc($socket.id).isInitiator">
             <template v-slot:activator="{on}">
               <v-btn icon small @click="sortPlayers" class="white--text" v-on="on">
                 <v-icon>mdi-update</v-icon>
@@ -78,7 +78,7 @@
             </template>
             <span>{{ $t('mafia.sortPlayers') }}</span>
           </v-tooltip>
-          <v-tooltip open-delay="250" top v-if="gameIsStarted && isInitiator">
+          <v-tooltip open-delay="250" top v-if="gameIsStarted && findPc($socket.id).isInitiator">
             <template v-slot:activator="{on}">
               <v-btn
                 icon
@@ -159,7 +159,11 @@
                                     icon
                                     v-on="on"
                                     class="white--text"
-                                    v-if="hover && isInitiator && player.id !== $socket.id"
+                                    v-if="
+                                      hover &&
+                                        findPc($socket.id).isInitiator &&
+                                        player.id !== $socket.id
+                                    "
                                   >
                                     <v-icon>mdi-dots-vertical</v-icon>
                                   </v-btn>
@@ -226,7 +230,7 @@
                               <v-icon
                                 v-if="
                                   hover &&
-                                    !isInitiator &&
+                                    !findPc($socket.id).isInitiator &&
                                     !player.isVideo &&
                                     player.id !== $socket.id
                                 "
@@ -238,7 +242,7 @@
                               <v-icon
                                 v-if="
                                   hover &&
-                                    !isInitiator &&
+                                    !findPc($socket.id).isInitiator &&
                                     !player.isAudio &&
                                     player.id !== $socket.id
                                 "
@@ -373,7 +377,7 @@
                 icon
                 class="error--text ml-2"
                 @click="openDialogAlert({method: banPlayer, args: [player]})"
-                :disabled="!isInitiator"
+                :disabled="!findPc($socket.id).isInitiator"
               >
                 <v-icon>mdi-lan-disconnect</v-icon>
               </v-btn>
@@ -533,21 +537,20 @@ export default {
       ]
     },
     room: null,
-    speechSynthesisUtterance: null,
     peerConnections: [],
-    statistics: [],
-    time: '00:00',
+    speechSynthesisUtterance: null,
     timer: null,
-    isPause: false,
-    isInitiator: false,
-    gameIsStarted: false,
-    isSecondVoting: false,
-    canCheck: true,
-    canNominate: true,
+
+    // room options
     nominateIndex: 1,
     duration: 0,
     gameSteps: [],
     gameInfo: {},
+    statistics: [],
+    isPause: false,
+    gameIsStarted: false,
+    isSecondVoting: false,
+
     dialogSettings: {
       value: false,
       displayName: ''
@@ -573,6 +576,9 @@ export default {
         'border-radius': '8px',
         border: '2px solid grey'
       }
+    },
+    getTime() {
+      return moment(this.duration).format('mm:ss')
     }
   },
 
@@ -596,16 +602,7 @@ export default {
     test(msg) {
       console.dir(msg)
     },
-    isInitiator({id, isInitiator = false}) {
-      const player = this.findPc(id)
-      this.$set(player, 'isInitiator', isInitiator)
-      if (player.id === this.$socket.id) {
-        this.isInitiator = isInitiator
-      }
-      // console.log('TEST:', id, isInitiator)
-    },
-    time({time, duration}) {
-      this.time = time
+    time({duration}) {
       this.duration = duration
     },
     speechSpeak({text}) {
@@ -622,9 +619,9 @@ export default {
         this.$delete(pc, 'order')
       })
     },
-    getRole({uuid, role}) {
-      this.$set(this.findPc(uuid), 'isVisibleRole', false)
-      this.$set(this.findPc(uuid), 'role', role)
+    getRole({id, role}) {
+      this.$set(this.findPc(id), 'isVisibleRole', false)
+      this.$set(this.findPc(id), 'role', role)
       // this.$set(this.findPc(uuid), 'displayName', role)
     },
     voteForKill({fromId, toId}) {
@@ -668,7 +665,6 @@ export default {
         this.$set(pc, 'isInitiator', pc.id === id)
       })
       if (this.$socket.id === id) {
-        this.isInitiator = true
         this.isPause = true
         if (this.gameIsStarted) {
           this.nextStep(this.gameSteps[0], this.duration)
@@ -685,8 +681,18 @@ export default {
     updateSettings({id, displayName}) {
       this.$set(this.findPc(id), 'displayName', displayName)
     },
-    updatePlayerInfo(settings) {
-      Object.assign(this.findPc(this.$socket.id), settings)
+    updatePlayerInfo({id, ...settings}) {
+      const player = this.findPc(id)
+      if (player.id) {
+        Object.entries(settings).forEach(([key, value]) => {
+          this.$set(player, key, value)
+        })
+      }
+    },
+    updateRoomInfo(settings) {
+      Object.entries(settings).forEach(([key, value]) => {
+        this[key] = value
+      })
     },
     setGameInfo(info) {
       this.gameInfo = info
@@ -728,8 +734,8 @@ export default {
         }
         this.$set(pc, 'isHeal', false)
         this.$set(pc, 'killPlayers', [])
+        this.$set(pc, 'canCheck', true)
       })
-      this.canCheck = true
     },
     resetGameDay() {
       this.peerConnections.forEach(pc => {
@@ -737,9 +743,9 @@ export default {
         this.$set(pc, 'nominateIndex', 0)
         this.$set(pc, 'votePlayers', [])
         this.$set(pc, 'isDeadLastRound', false)
+        this.$set(pc, 'canNominate', true)
       })
       this.nominateIndex = 1
-      this.canNominate = true
       this.isSecondVoting = false
     },
     startGame() {
@@ -756,7 +762,6 @@ export default {
         this.$set(pc, 'isVisibleRole', true)
       })
       this.duration = 0
-      this.time = moment(this.duration).format('mm:ss')
       this.isSecondVoting = false
       this.gameIsStarted = false
     },
@@ -794,7 +799,7 @@ export default {
         ...mySettings
       })
 
-      if (this.isInitiator) {
+      if (mySettings.isInitiator) {
         this.$socket.emit('statistics', {
           id: settings.id,
           stat: this.statistics
@@ -853,8 +858,18 @@ export default {
         this.$set(player, 'isAudio', state)
       }
     },
-    message(message) {
-      console.log('MESSAGE:', message)
+    updatePc({id, ...opts}) {
+      const player = this.findPc(id)
+      if (player.id) {
+        Object.entries(opts).forEach(([key, value]) => {
+          this.$set(player, key, value)
+        })
+      }
+    },
+    updateRoom(opts) {
+      Object.entries(opts).forEach(([key, value]) => {
+        this[key] = value
+      })
     }
   },
 
@@ -906,7 +921,10 @@ export default {
         isAlive: true,
         nominateIndex: 0,
         isVideo: true,
-        isAudio: true
+        isAudio: true,
+        canCheck: true,
+        canNominate: true,
+        isInitiator: false
       }
       this.peerConnections.push({
         stream,
@@ -916,28 +934,34 @@ export default {
         ...settings,
         savedId: localStorage.getItem('id')
       })
-      this.$socket.emit('isInitiator', {
-        id: this.$socket.id,
-        room: this.room
-      })
       // localStorage.setItem('id', this.$socket.id)
-      // this.$socket.emit('test')
     },
     setUpPeer({savedId, ...settings}) {
       // console.log('SET UP PEER')
-      const {stream} = this.findPc(this.$socket.id)
+      const {stream, isInitiator} = this.findPc(this.$socket.id)
       const player = {
         ...settings,
         pc: new RTCPeerConnection(this.pcConfig)
       }
       const existPlayer = this.findPc(savedId)
-      if (existPlayer) {
+      if (existPlayer.id) {
         existPlayer.ids.push(existPlayer.id)
         this.$set(existPlayer, 'pc', player.pc)
         this.$set(existPlayer, 'id', player.id)
         const {stream, pc, ...restSettings} = this.findPc(player.id)
-        if (this.isInitiator) {
+        if (isInitiator) {
           this.$socket.emit('updatePlayerInfo', restSettings)
+          this.$socket.emit('updateRoomInfo', {
+            id: restSettings.id,
+            nominateIndex: this.nominateIndex,
+            duration: this.duration,
+            gameSteps: this.gameSteps,
+            gameInfo: this.gameInfo,
+            statistics: this.statistics,
+            isPause: this.isPause,
+            gameIsStarted: this.gameIsStarted,
+            isSecondVoting: this.isSecondVoting
+          })
         }
       } else {
         this.peerConnections.push(player)
@@ -981,7 +1005,7 @@ export default {
       console.log(`connection with peer ${peerUuid} ${state}`)
       if (['failed', 'closed', 'disconnected'].includes(state)) {
         console.log('DELETE PEER', peerUuid)
-        if (this.isInitiator) {
+        if (this.findPc(this.$socket.id).isInitiator) {
           this.isPause = true
         }
         if (this.findPc(peerUuid).isInitiator) {
@@ -1040,15 +1064,15 @@ export default {
     },
 
     findPc(id) {
-      return this.peerConnections.find(pc => pc.id === id || pc.ids.includes(id))
+      return this.peerConnections.find(pc => pc.id === id || pc.ids.includes(id)) ?? {}
     },
     findIndexPc(id) {
-      return this.peerConnections.findIndex(pc => pc.id === id || pc.ids.includes(id))
+      return this.peerConnections.findIndex(pc => pc.id === id || pc.ids.includes(id)) ?? {}
     },
 
     canSeeToggleVideo(player) {
       return (
-        player.stream.getVideoTracks()[0] && (player.id === this.$socket.id || this.isInitiator)
+        player.stream.getVideoTracks()[0] && (player.id === this.$socket.id || player.isInitiator)
       )
     },
     toggleVideo({id, room, state = null}) {
@@ -1062,7 +1086,7 @@ export default {
 
     canSeeToggleAudio(player) {
       return (
-        player.stream.getAudioTracks()[0] && (player.id === this.$socket.id || this.isInitiator)
+        player.stream.getAudioTracks()[0] && (player.id === this.$socket.id || player.isInitiator)
       )
     },
     toggleAudio({id, room, state = null}) {
@@ -1075,7 +1099,7 @@ export default {
     },
 
     canCheckRole({id}) {
-      const {role, isAlive} = this.findPc(this.$socket.id) ?? {}
+      const {role, isAlive, canCheck} = this.findPc(this.$socket.id) ?? {}
 
       return (
         this.$socket.id !== id &&
@@ -1083,30 +1107,30 @@ export default {
         isAlive &&
         ['detective', 'boss'].includes(role) &&
         role === this.gameInfo.type &&
-        this.canCheck
+        canCheck
       )
     },
     checkRole({id}) {
       this.$set(this.findPc(id), 'isVisibleRole', true)
-      this.canCheck = false
+      this.$set(this.findPc(id), 'canCheck', false)
       this.addStatCheckRole({fromId: this.$socket.id, toId: id})
     },
 
     canNomination({id, isNominate = false, isAlive}) {
-      const {isAlive: meIsAlive} = this.findPc(this.$socket.id) ?? {}
+      const {isAlive: meIsAlive, canNominate} = this.findPc(this.$socket.id) ?? {}
 
       return (
         meIsAlive &&
         this.gameInfo.type === 'nomination' &&
         this.$socket.id !== id &&
         this.$socket.id === this.gameInfo.active &&
-        this.canNominate &&
+        canNominate &&
         !isNominate &&
         isAlive
       )
     },
     nomination({id}) {
-      this.canNominate = false
+      this.$set(this.findPc(this.$socket.id), 'canNominate', false)
       this.$socket.emit('nomination', {id, room: this.room})
       this.addStatNomination({id})
     },
@@ -1247,7 +1271,7 @@ export default {
       }
     },
     newInitiator({id}) {
-      this.isInitiator = false
+      this.$set(this.findPc(this.$socket.id), 'isInitiator', false)
       clearInterval(this.timer)
       this.$socket.emit('newInitiator', {
         id,
@@ -1270,9 +1294,7 @@ export default {
     },
     addDuration(e, duration = 10000) {
       this.duration += duration
-      this.time = moment(this.duration).format('mm:ss')
       this.$socket.emit('time', {
-        time: this.time,
         duration: this.duration,
         room: this.room
       })
@@ -1673,7 +1695,7 @@ export default {
     formatRole(player) {
       const {role} = this.findPc(this.$socket.id)
       if ((player.isVisibleRole && player.role) || (player.id === this.$socket.id && player.role)) {
-        if (!this.gameIsStarted) {
+        if (!this.gameIsStarted || player.id === this.$socket.id) {
           return player.role
         }
 
@@ -1737,26 +1759,18 @@ export default {
     },
     goToNextStep() {
       this.duration = 0
-      // const f = this.gameSteps.shift()
-      // f()
-      // if (this.duration < 10000) {
-      //   this.duration = 10000
-      // }
     },
     nextStep(f, duration = 5000) {
       this.duration = duration
       this.timer = setInterval(() => {
         if (!this.isPause) {
           this.duration = Math.max(0, this.duration - 1000)
-          this.time = moment(this.duration).format('mm:ss')
           this.$socket.emit('time', {
-            time: this.time,
             duration: this.duration,
             room: this.room
           })
 
           if (this.duration <= 0) {
-            this.duration = null
             const {done, winner} = this.shouldEndGame()
             if (done) {
               this.endGame()
