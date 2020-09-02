@@ -113,10 +113,10 @@ io.on('connect', socket => {
 
     players
       .sort(() => (Math.random() >= 0.5 ? 1 : -1))
-      .forEach(uuid => {
+      .forEach(id => {
         const role = gameRoles.pop() ?? 'citizen'
         io.to(room).emit('getRole', {
-          uuid,
+          id,
           role
         })
       })
