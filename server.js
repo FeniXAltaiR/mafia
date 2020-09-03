@@ -65,7 +65,7 @@ io.on('connect', socket => {
   })
 
   socket.on('updateRoomInfo', ({id, ...settings}) => {
-    socket.to(settings.id).emit('updateRoomInfo', settings)
+    socket.to(id).emit('updateRoomInfo', settings)
   })
 
   socket.on('toggleVideo', ({id, room, state}) => {
@@ -155,34 +155,10 @@ io.on('connect', socket => {
     io.to(room).emit('endGame')
   })
 
-  socket.on('gameLastWord', ({room, id, displayName, duration}) => {
-    socket.to(room).emit('gameLastWord', {id, displayName, duration})
-  })
-
-  socket.on('gameNight', ({room}) => {
-    socket.to(room).emit('gameNight')
-  })
-
-  socket.on('gameDay', ({room}) => {
-    socket.to(room).emit('gameDay')
-  })
-
-  socket.on('gameExplanation', ({room, duration, player}) => {
-    socket.to(room).emit('gameExplanation', {duration, player})
-  })
-
-  socket.on('removeNextStep', ({room}) => {
-    socket.to(room).emit('removeNextStep')
-  })
-
   socket.on('newInitiator', ({id, room}) => {
     io.to(room).emit('newInitiator', {
       id
     })
-  })
-
-  socket.on('gameVoting', ({room}) => {
-    socket.to(room).emit('gameVoting')
   })
 
   socket.on('secondVoting', ({room, players}) => {

@@ -671,12 +671,8 @@ export default {
         }
       }
     },
-    gameVoting() {
-      this.gameSteps.splice(-1, 0, ...this.gameVoting())
-    },
     secondVoting(players) {
       this.secondVoting(players)
-      this.gameSteps.splice(-1, 0, ...this.gameVoting())
     },
     updateSettings({id, displayName}) {
       this.$set(this.findPc(id), 'displayName', displayName)
@@ -717,7 +713,7 @@ export default {
     addStat(stat) {
       const lastEl = this.statistics[this.statistics.length - 1] ?? {}
       if (lastEl.title === stat.title) {
-        lastEl.players = [...lastEl.players, stat.players]
+        lastEl.players = [...lastEl.players, ...stat.players]
       } else {
         this.statistics.push(stat)
       }
@@ -764,21 +760,6 @@ export default {
       this.duration = 0
       this.isSecondVoting = false
       this.gameIsStarted = false
-    },
-    gameLastWord({duration, id, displayName}) {
-      this.gameSteps.splice(-1, 0, ...this.gameLastWord(duration, id, displayName))
-    },
-    gameNight() {
-      this.gameSteps.push(...this.gameNight())
-    },
-    gameDay() {
-      this.gameSteps.push(...this.gameDay())
-    },
-    gameExplanation({duration, player}) {
-      this.gameExplanation({duration, player})
-    },
-    removeNextStep() {
-      this.removeNextStep()
     },
     banPlayer({id}) {
       this.peerConnections = this.peerConnections.filter(pc => pc.id !== id)
@@ -1112,7 +1093,7 @@ export default {
     },
     checkRole({id}) {
       this.$set(this.findPc(id), 'isVisibleRole', true)
-      this.$set(this.findPc(id), 'canCheck', false)
+      this.$set(this.findPc(this.$socket.id), 'canCheck', false)
       this.addStatCheckRole({fromId: this.$socket.id, toId: id})
     },
 
@@ -1186,12 +1167,6 @@ export default {
       } else {
         const {id, displayName} = maxVotePlayers[0]
         this.gameSteps.splice(-1, 0, ...this.gameLastWord({duration, id, displayName}))
-        this.$socket.emit('gameLastWord', {
-          room: this.room,
-          duration,
-          id,
-          displayName
-        })
       }
     },
     banPlayer({id}) {
@@ -1444,7 +1419,7 @@ export default {
     },
 
     // gameSteps
-    setGameStep({
+    executeGameStep({
       duration = this.duration,
       info = null,
       speech = null,
@@ -1472,11 +1447,9 @@ export default {
     setGameNight() {
       this.$socket.emit('resetGameDay', {room: this.room})
       this.gameSteps.push(...this.gameNight())
-      this.$socket.emit('gameNight', {room: this.room})
     },
     setGameDay() {
       this.gameSteps.push(...this.gameDay())
-      this.$socket.emit('gameDay', {room: this.room})
     },
     setGameVoting() {
       this.gameSteps.splice(-1, 0, ...this.gameVoting())
@@ -1488,17 +1461,12 @@ export default {
         .sort((playerA, playerB) => (playerA.nominateIndex > playerB.nominateIndex ? 1 : -1))
         .forEach(player => {
           this.gameExplanation({duration, player})
-          this.$socket.emit('gameExplanation', {
-            room: this.room,
-            duration,
-            player
-          })
         })
     },
     randezvous(duration = 5000) {
       return [
         ...this.peerConnections.map(player => ({
-          method: 'setGameStep',
+          method: 'executeGameStep',
           options: {
             duration,
             info: {
@@ -1516,7 +1484,7 @@ export default {
     gameNight(duration = 5000) {
       return [
         {
-          method: 'setGameStep',
+          method: 'executeGameStep',
           options: {
             duration,
             info: {
@@ -1528,7 +1496,7 @@ export default {
           }
         },
         {
-          method: 'setGameStep',
+          method: 'executeGameStep',
           options: {
             duration,
             info: {
@@ -1540,7 +1508,7 @@ export default {
           }
         },
         {
-          method: 'setGameStep',
+          method: 'executeGameStep',
           options: {
             duration,
             info: {
@@ -1550,7 +1518,7 @@ export default {
           }
         },
         {
-          method: 'setGameStep',
+          method: 'executeGameStep',
           options: {
             duration,
             info: {
@@ -1567,7 +1535,7 @@ export default {
           }
         },
         {
-          method: 'setGameStep',
+          method: 'executeGameStep',
           options: {
             duration,
             info: {
@@ -1579,7 +1547,7 @@ export default {
           }
         },
         {
-          method: 'setGameStep',
+          method: 'executeGameStep',
           options: {
             duration,
             info: {
@@ -1589,7 +1557,7 @@ export default {
           }
         },
         {
-          method: 'setGameStep',
+          method: 'executeGameStep',
           options: {
             duration,
             info: {
@@ -1601,7 +1569,7 @@ export default {
           }
         },
         {
-          method: 'setGameStep',
+          method: 'executeGameStep',
           options: {
             duration,
             info: {
@@ -1613,7 +1581,7 @@ export default {
           }
         },
         {
-          method: 'setGameStep',
+          method: 'executeGameStep',
           options: {
             duration,
             info: {
@@ -1623,7 +1591,7 @@ export default {
           }
         },
         {
-          method: 'setGameStep',
+          method: 'executeGameStep',
           options: {
             duration,
             info: {
@@ -1635,7 +1603,7 @@ export default {
           }
         },
         {
-          method: 'setGameStep',
+          method: 'executeGameStep',
           options: {
             duration,
             info: {
@@ -1647,7 +1615,7 @@ export default {
           }
         },
         {
-          method: 'setGameStep',
+          method: 'executeGameStep',
           options: {
             duration,
             info: {
@@ -1657,7 +1625,7 @@ export default {
           }
         },
         {
-          method: 'setGameStep',
+          method: 'executeGameStep',
           options: {
             duration,
             info: {
@@ -1684,7 +1652,7 @@ export default {
     gameDay(duration = 5000) {
       return [
         {
-          method: 'setGameStep',
+          method: 'executeGameStep',
           options: {
             duration,
             info: {
@@ -1699,7 +1667,7 @@ export default {
           method: 'meeting'
         },
         {
-          method: 'setGameStep',
+          method: 'executeGameStep',
           options: {
             duration,
             info: {
@@ -1711,7 +1679,7 @@ export default {
         ...this.peerConnections
           .filter(player => player.isAlive)
           .map(player => ({
-            method: 'setGameStep',
+            method: 'executeGameStep',
             options: {
               duration,
               info: {
@@ -1735,7 +1703,7 @@ export default {
           method: 'setGameExplanation'
         },
         {
-          method: 'setGameStep',
+          method: 'executeGameStep',
           options: {
             duration: 10000,
             info: {
@@ -1745,7 +1713,7 @@ export default {
           }
         },
         {
-          method: 'setGameStep',
+          method: 'executeGameStep',
           options: {
             info: {
               text: this.$t('mafia.votingResult'),
@@ -1759,7 +1727,7 @@ export default {
           }
         },
         {
-          method: 'setGameStep',
+          method: 'executeGameStep',
           options: {
             duration: 1000,
             methods: [
@@ -1773,7 +1741,7 @@ export default {
     },
     gameExplanation({duration, player}) {
       this.gameSteps.splice(-4, 0, {
-        method: 'setGameStep',
+        method: 'executeGameStep',
         options: {
           duration,
           info: {
@@ -1787,7 +1755,7 @@ export default {
     gameLastWord({duration, id, displayName}) {
       return [
         {
-          method: 'setGameStep',
+          method: 'executeGameStep',
           options: {
             duration,
             info: {
@@ -1798,7 +1766,7 @@ export default {
           }
         },
         {
-          method: 'setGameStep',
+          method: 'executeGameStep',
           options: {
             duration,
             info: {
@@ -1948,7 +1916,6 @@ export default {
               this[method](options)
               clearInterval(this.timer)
               this.removeNextStep()
-              this.$socket.emit('removeNextStep', {room: this.room})
               this.nextStep(this.gameSteps[0], this.duration)
             }
           }
@@ -1957,6 +1924,7 @@ export default {
     },
     removeNextStep() {
       this.gameSteps.shift()
+      this.$socket.emit('updateRoomInfo', {id: this.room, gameSteps: this.gameSteps})
     }
   }
 }
