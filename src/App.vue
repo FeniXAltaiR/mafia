@@ -26,6 +26,16 @@
           </v-list-item>
         </v-list>
       </v-menu>
+      <v-slide-x-transition>
+        <v-btn icon v-if="userData.id">
+          <v-img :src="userData.avatar_url" style="max-height: 20px; max-width: 20px"></v-img>
+        </v-btn>
+      </v-slide-x-transition>
+      <v-slide-x-transition>
+        <v-btn icon v-if="userData.id" @click="logout">
+          <v-icon>mdi-exit-to-app</v-icon>
+        </v-btn>
+      </v-slide-x-transition>
     </v-app-bar>
 
     <v-main>
@@ -41,16 +51,25 @@
 </template>
 
 <script>
+import {mapGetters} from 'vuex'
+
 export default {
   data: () => ({
     drawer: false,
     bar: true
   }),
+  computed: {
+    ...mapGetters(['userData'])
+  },
 
   sockets: {
     connect() {
       console.log('CONNECT:', this.$socket.id)
     }
+  },
+
+  mounted() {
+    this.getToken()
   },
 
   methods: {
@@ -64,6 +83,27 @@ export default {
     changeLang(locale) {
       this.$i18n.locale = locale
       localStorage.setItem('locale', locale)
+    },
+    async getToken() {
+      const getUrl = () => {
+        const {code} = this.$route.query
+
+        if (code) {
+          return `/login/github/callback?code=${code}`
+        }
+
+        return `/login/github/user`
+      }
+
+      const url = getUrl()
+      const res = await fetch(url)
+      const data = await res.json()
+      this.$store.commit('SET_USER_DATA', data)
+      // this.$router.push('/')
+    },
+    async logout() {
+      await fetch('/login/logout')
+      this.$store.commit('SET_USER_DATA', {})
     }
   }
 }

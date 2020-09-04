@@ -518,6 +518,7 @@
 <script>
 import moment from 'moment'
 import draggable from 'vuedraggable'
+import {mapGetters} from 'vuex'
 
 export default {
   components: {
@@ -579,7 +580,8 @@ export default {
     },
     getTime() {
       return moment(this.duration).format('mm:ss')
-    }
+    },
+    ...mapGetters(['userData'])
   },
 
   sockets: {
@@ -894,7 +896,7 @@ export default {
       // console.log('Adding local stream.')
       const settings = {
         id: this.$socket.id,
-        displayName: localStorage.getItem('displayName'),
+        displayName: this.userData.name || localStorage.getItem('displayName'),
         ids: [],
         room: this.room,
         killPlayers: [],
