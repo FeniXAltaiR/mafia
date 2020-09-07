@@ -761,8 +761,8 @@ export default {
         alert('You had banned')
       }
     },
-    fullRoom() {
-      alert('ROOM IS FOOL')
+    message({msg}) {
+      alert(msg)
       this.$router.push('/')
     },
     join(settings) {
@@ -907,11 +907,11 @@ export default {
       })
       this.$socket.emit('join', {
         ...settings,
-        // savedId: localStorage.getItem('id')
-        savedId: sessionStorage.getItem('id')
+        savedId: localStorage.getItem('id')
+        // savedId: sessionStorage.getItem('id')
       })
-      // localStorage.setItem('id', this.$socket.id)
-      sessionStorage.setItem('id', this.$socket.id)
+      localStorage.setItem('id', this.$socket.id)
+      // sessionStorage.setItem('id', this.$socket.id)
     },
     setUpPeer({savedId, ...settings}) {
       // console.log('SET UP PEER')
@@ -1384,6 +1384,7 @@ export default {
       this.setGameInfo({text: this.$t('mafia.startingGame'), type: 'start'})
       this.gameSteps = [...this.randezvous()]
       this.nextStep(this.gameSteps[0], 5000)
+      this.duration = 5000
       this.gameIsStarted = true
       this.isPause = false
       this.makeScreenshots()
@@ -1451,7 +1452,7 @@ export default {
       this.gameSteps.splice(-1, 0, ...this.gameVoting())
       this.$socket.emit('gameVoting', {room: this.room})
     },
-    setGameExplanation({duration = 5000} = {}) {
+    setGameExplanation({duration = 30000} = {}) {
       this.peerConnections
         .filter(player => player.isAlive && player.isNominate)
         .sort((playerA, playerB) => (playerA.nominateIndex > playerB.nominateIndex ? 1 : -1))
@@ -1459,7 +1460,7 @@ export default {
           this.gameExplanation({duration, player})
         })
     },
-    randezvous(duration = 5000) {
+    randezvous(duration = 60000) {
       return [
         ...this.peerConnections.map(player => ({
           method: 'executeGameStep',
@@ -1506,7 +1507,7 @@ export default {
         {
           method: 'executeGameStep',
           options: {
-            duration,
+            duration: 20000,
             info: {
               text: `${this.$t('mafia.night')}: ${this.$t('mafia.mafia')}`,
               type: 'mafia'
@@ -1545,7 +1546,7 @@ export default {
         {
           method: 'executeGameStep',
           options: {
-            duration,
+            duration: 20000,
             info: {
               text: `${this.$t('mafia.night')}: ${this.$t('mafia.boss')}`,
               type: 'boss'
@@ -1579,7 +1580,7 @@ export default {
         {
           method: 'executeGameStep',
           options: {
-            duration,
+            duration: 20000,
             info: {
               text: `${this.$t('mafia.night')}: ${this.$t('mafia.detective')}`,
               type: 'detective'
@@ -1613,7 +1614,7 @@ export default {
         {
           method: 'executeGameStep',
           options: {
-            duration,
+            duration: 20000,
             info: {
               text: `${this.$t('mafia.night')}: ${this.$t('mafia.doctor')}`,
               type: 'doctor'
@@ -1633,12 +1634,12 @@ export default {
             methods: [
               {
                 f: 'addStatDoctor'
+              },
+              {
+                f: 'shouldKill'
               }
             ]
           }
-        },
-        {
-          method: 'shouldKill'
         },
         {
           method: 'setGameDay'
@@ -1677,7 +1678,7 @@ export default {
           .map(player => ({
             method: 'executeGameStep',
             options: {
-              duration,
+              duration: 60000,
               info: {
                 text: `${this.$t('mafia.nomination')}: ${player.displayName}`,
                 type: 'nomination',
@@ -1748,12 +1749,12 @@ export default {
         }
       })
     },
-    gameLastWord({duration, id, displayName}) {
+    gameLastWord({duration = 5000, id, displayName}) {
       return [
         {
           method: 'executeGameStep',
           options: {
-            duration,
+            duration: 60000,
             info: {
               text: `${this.$t('mafia.lastWord')}: ${displayName}`,
               type: 'last_word',
@@ -1793,7 +1794,7 @@ export default {
         }
       ]
     },
-    meeting({duration = 10000} = {}) {
+    meeting({duration = 180000} = {}) {
       this.$socket.emit('resetGameNight', {room: this.room})
       this.duration = duration
       this.setGameInfo({text: this.$t('mafia.meeting'), type: 'meeting'})
@@ -1894,7 +1895,7 @@ export default {
       this.executeNextStep(this.gameSteps[0])
     },
     nextStep({method, options = {}}, duration = null) {
-      this.duration = options.duration || duration || this.duration
+      // this.duration = options.duration || duration || this.duration
       this.timer = setInterval(() => {
         if (!this.isPause) {
           this.duration = Math.max(0, this.duration - 1000)

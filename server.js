@@ -103,7 +103,12 @@ io.on('connect', socket => {
     const players = playersInRoom(room)
 
     if (players.length >= 20) {
-      socket.emit('fullRoom')
+      socket.emit('message', {msg: 'Room is fool'})
+    } else if (players.includes(settings.savedId)) {
+      socket.emit('message', {
+        msg:
+          'There is player in this room with the same id. Try to come in this room from another browser'
+      })
     } else {
       socket.join(room)
       const opts = {
