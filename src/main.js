@@ -12,7 +12,7 @@ import i18n from './i18n'
 Vue.use(
   new VueSocketio({
     // debug: true,
-    connection: 'http://localhost:7000/'
+    connection: 'http://localhost:7000/sock'
   })
 )
 

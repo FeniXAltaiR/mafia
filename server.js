@@ -80,14 +80,14 @@ app.get('/login/logout', (req, res) => {
   res.send(JSON.stringify({}, null, 2))
 })
 
-const playersInRoom = room => {
-  const {sockets = {}} = io.sockets.adapter.rooms[room] ?? {}
-  const players = Object.keys(sockets)
+const sock = io.of('/sock')
+sock.on('connect', socket => {
+  const playersInRoom = room => {
+    const {sockets = {}} = io.nsps['/sock'].adapter.rooms[room] ?? {}
+    const players = Object.keys(sockets)
 
-  return players
-}
-
-io.on('connect', socket => {
+    return players
+  }
   socket.on('disconnecting', () => {
     const rooms = Object.keys(socket.rooms)
 
@@ -114,7 +114,7 @@ io.on('connect', socket => {
       const opts = {
         isInitiator: players.length === 0
       }
-      io.to(room).emit('updatePlayerInfo', {
+      sock.to(room).emit('updatePlayerInfo', {
         id: settings.id,
         ...opts
       })
@@ -146,15 +146,11 @@ io.on('connect', socket => {
   })
 
   socket.on('toggleVideo', ({id, room, state}) => {
-    io.in(room).emit('toggleVideo', {id, state})
-    // socket.emit('toggleVideo', id)
-    // io.emit('toggleVideo', id)
+    sock.in(room).emit('toggleVideo', {id, state})
   })
 
   socket.on('toggleAudio', ({id, room, state}) => {
-    io.in(room).emit('toggleAudio', {id, state})
-    // socket.emit('toggleVideo', id)
-    // io.emit('toggleVideo', id)
+    sock.in(room).emit('toggleAudio', {id, state})
   })
 
   // socket.on('ipaddr', function() {
@@ -192,7 +188,7 @@ io.on('connect', socket => {
       .sort(() => (Math.random() >= 0.5 ? 1 : -1))
       .forEach(id => {
         const role = gameRoles.pop() ?? 'citizen'
-        io.to(room).emit('getRole', {
+        sock.to(room).emit('getRole', {
           id,
           role
         })
@@ -205,11 +201,11 @@ io.on('connect', socket => {
   })
 
   socket.on('makeScreenshots', ({room}) => {
-    io.to(room).emit('makeScreenshots')
+    sock.to(room).emit('makeScreenshots')
   })
 
   socket.on('addStat', ({room, ...stat}) => {
-    io.to(room).emit('addStat', stat)
+    sock.to(room).emit('addStat', stat)
   })
 
   socket.on('statistics', ({id, stat}) => {
@@ -217,23 +213,23 @@ io.on('connect', socket => {
   })
 
   socket.on('sortPlayers', ({room, players}) => {
-    io.to(room).emit('sortPlayers', {players})
+    sock.to(room).emit('sortPlayers', {players})
   })
 
   socket.on('resetGameNight', ({room}) => {
-    io.to(room).emit('resetGameNight')
+    sock.to(room).emit('resetGameNight')
   })
 
   socket.on('resetGameDay', ({room}) => {
-    io.to(room).emit('resetGameDay')
+    sock.to(room).emit('resetGameDay')
   })
 
   socket.on('endGame', ({room}) => {
-    io.to(room).emit('endGame')
+    sock.to(room).emit('endGame')
   })
 
   socket.on('newInitiator', ({id, room}) => {
-    io.to(room).emit('newInitiator', {
+    sock.to(room).emit('newInitiator', {
       id
     })
   })
@@ -243,7 +239,7 @@ io.on('connect', socket => {
   })
 
   socket.on('updateSettings', settings => {
-    io.to(settings.room).emit('updateSettings', settings)
+    sock.to(settings.room).emit('updateSettings', settings)
   })
 
   socket.on('time', ({room, duration}) => {
@@ -253,41 +249,41 @@ io.on('connect', socket => {
   })
 
   socket.on('speechSpeak', ({room, text}) => {
-    io.to(room).emit('speechSpeak', {text})
+    sock.to(room).emit('speechSpeak', {text})
   })
 
   socket.on('voteForKill', ({fromId, toId, room}) => {
-    io.to(room).emit('voteForKill', {
+    sock.to(room).emit('voteForKill', {
       fromId,
       toId
     })
   })
 
   socket.on('voteForExile', ({fromId, toId, room}) => {
-    io.to(room).emit('voteForExile', {
+    sock.to(room).emit('voteForExile', {
       fromId,
       toId
     })
   })
 
   socket.on('kill', ({id, room}) => {
-    io.to(room).emit('kill', {
+    sock.to(room).emit('kill', {
       id
     })
   })
 
   socket.on('heal', ({toId, room}) => {
-    io.to(room).emit('heal', {
+    sock.to(room).emit('heal', {
       toId
     })
   })
 
   socket.on('nomination', ({id, room}) => {
-    io.to(room).emit('nomination', {id})
+    sock.to(room).emit('nomination', {id})
   })
 
   socket.on('banPlayer', ({id, room}) => {
-    io.to(room).emit('banPlayer', {id})
+    sock.to(room).emit('banPlayer', {id})
   })
 
   socket.on('bye', function() {
