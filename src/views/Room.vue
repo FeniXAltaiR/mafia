@@ -386,14 +386,6 @@
         </template>
       </v-col>
     </draggable>
-    <!-- <v-col md="12" v-for="player in peerConnections" :key="player.id" style="position: relative;">
-      <v-row class="justify-center px-2">
-        <v-img :src="player.src" alt="" style="border-radius: 50%; height: 200px; max-width: 200px"></v-img>
-      </v-row>
-      <v-row class="justify-center px-2">
-        <span>{{player.displayName}}</span>
-      </v-row>
-    </v-col> -->
     <v-dialog v-model="dialogSettings.value" persistent max-width="600px">
       <v-card>
         <v-card-title>
@@ -915,9 +907,11 @@ export default {
       })
       this.$socket.emit('join', {
         ...settings,
-        savedId: localStorage.getItem('id')
+        // savedId: localStorage.getItem('id')
+        savedId: sessionStorage.getItem('id')
       })
       // localStorage.setItem('id', this.$socket.id)
+      sessionStorage.setItem('id', this.$socket.id)
     },
     setUpPeer({savedId, ...settings}) {
       // console.log('SET UP PEER')
@@ -1457,7 +1451,7 @@ export default {
       this.gameSteps.splice(-1, 0, ...this.gameVoting())
       this.$socket.emit('gameVoting', {room: this.room})
     },
-    setGameExplanation({duration = 5000}) {
+    setGameExplanation({duration = 5000} = {}) {
       this.peerConnections
         .filter(player => player.isAlive && player.isNominate)
         .sort((playerA, playerB) => (playerA.nominateIndex > playerB.nominateIndex ? 1 : -1))
@@ -1799,7 +1793,7 @@ export default {
         }
       ]
     },
-    meeting({duration = 10000}) {
+    meeting({duration = 10000} = {}) {
       this.$socket.emit('resetGameNight', {room: this.room})
       this.duration = duration
       this.setGameInfo({text: this.$t('mafia.meeting'), type: 'meeting'})
@@ -1897,6 +1891,7 @@ export default {
     },
     goToNextStep() {
       this.duration = 0
+      this.executeNextStep(this.gameSteps[0])
     },
     nextStep({method, options = {}}, duration = null) {
       this.duration = options.duration || duration || this.duration
@@ -1909,20 +1904,23 @@ export default {
           })
 
           if (this.duration <= 0) {
-            const {done, winner} = this.shouldEndGame()
-            if (done) {
-              this.endGame()
-              this.setGameInfo({text: this.$t(`mafia.${winner}`), type: 'end'})
-              this.speechSpeak({text: this.$t(`mafia.${winner}`)})
-            } else {
-              this[method](options)
-              clearInterval(this.timer)
-              this.removeNextStep()
-              this.nextStep(this.gameSteps[0], this.duration)
-            }
+            this.executeNextStep({method, options})
           }
         }
       }, 1000)
+    },
+    executeNextStep({method, options = {}}) {
+      const {done, winner} = this.shouldEndGame()
+      if (done) {
+        this.endGame()
+        this.setGameInfo({text: this.$t(`mafia.${winner}`), type: 'end'})
+        this.speechSpeak({text: this.$t(`mafia.${winner}`)})
+      } else {
+        this[method](options)
+        clearInterval(this.timer)
+        this.removeNextStep()
+        this.nextStep(this.gameSteps[0], this.duration)
+      }
     },
     removeNextStep() {
       this.gameSteps.shift()
