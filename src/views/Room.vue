@@ -1634,11 +1634,14 @@ export default {
             methods: [
               {
                 f: 'addStatDoctor'
-              },
-              {
-                f: 'shouldKill'
               }
             ]
+          }
+        },
+        {
+          method: 'shouldKill',
+          options: {
+            duration: 0
           }
         },
         {

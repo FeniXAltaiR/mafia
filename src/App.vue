@@ -69,7 +69,8 @@ export default {
   },
 
   mounted() {
-    this.getToken()
+    fetch('/test')
+    // this.getToken()
   },
 
   methods: {
