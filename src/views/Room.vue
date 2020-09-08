@@ -109,7 +109,13 @@
       ghostClass="ghost"
       class="align-center flex-wrap px-2 justify-center"
     >
-      <v-col md="3" v-for="player in getPlayerStreams" :key="player.id" style="position: relative;">
+      <v-col
+        md="3"
+        v-for="player in getPlayerStreams"
+        :key="player.id"
+        style="position: relative;"
+        @dblclick="getFullscreen(player.id)"
+      >
         <template v-if="player.stream">
           <v-row class="justify-center px-2">
             <v-badge
@@ -912,6 +918,10 @@ export default {
       })
       localStorage.setItem('id', this.$socket.id)
       // sessionStorage.setItem('id', this.$socket.id)
+    },
+    getFullscreen(id) {
+      const video = document.querySelector(`video[data-id="${id}"]`)
+      video.requestFullscreen()
     },
     setUpPeer({savedId, ...settings}) {
       // console.log('SET UP PEER')

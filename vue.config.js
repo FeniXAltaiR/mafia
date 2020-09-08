@@ -12,6 +12,16 @@ module.exports = {
       '/login': {
         target: 'http://localhost:7000',
         changeOrigin: true
+      },
+      '/test': {
+        // target: 'http://89.108.103.9:7000',
+        target: 'https://mafiozi.xyz',
+        changeOrigin: true
+      },
+      '/sock': {
+        target: 'http://89.108.103.9:7000',
+        // target: 'https://mafiozi.xyz',
+        changeOrigin: true
       }
     }
   }
