@@ -111,6 +111,8 @@
     >
       <v-col
         md="3"
+        sm="6"
+        xs="12"
         v-for="player in getPlayerStreams"
         :key="player.id"
         style="position: relative;"
@@ -526,12 +528,44 @@ export default {
   data: () => ({
     turnReady: null,
     pcConfig: {
+      // iceServers: [
+      //   {
+      //     urls: 'stun:stun.stunprotocol.org:3478'
+      //   },
+      //   {
+      //     urls: 'stun:stun.l.google.com:19302'
+      //   }
+      // ]
       iceServers: [
+        {url: 'stun:stun01.sipphone.com'},
+        {url: 'stun:stun.ekiga.net'},
+        {url: 'stun:stun.fwdnet.net'},
+        {url: 'stun:stun.ideasip.com'},
+        {url: 'stun:stun.iptel.org'},
+        {url: 'stun:stun.rixtelecom.se'},
+        {url: 'stun:stun.schlund.de'},
+        {url: 'stun:stun.l.google.com:19302'},
+        {url: 'stun:stun1.l.google.com:19302'},
+        {url: 'stun:stun2.l.google.com:19302'},
+        {url: 'stun:stun3.l.google.com:19302'},
+        {url: 'stun:stun4.l.google.com:19302'},
+        {url: 'stun:stunserver.org'},
+        {url: 'stun:stun.softjoys.com'},
+        {url: 'stun:stun.voiparound.com'},
+        {url: 'stun:stun.voipbuster.com'},
+        {url: 'stun:stun.voipstunt.com'},
+        {url: 'stun:stun.voxgratia.org'},
+        {url: 'stun:stun.xten.com'},
+        {url: 'turn:numb.viagenie.ca', credential: 'muazkh', username: 'webrtc@live.com'},
         {
-          urls: 'stun:stun.stunprotocol.org:3478'
+          url: 'turn:192.158.29.39:3478?transport=udp',
+          credential: 'JZEOEt2V3Qb0y27GRntt2u2PAYA=',
+          username: '28224511:1379330808'
         },
         {
-          urls: 'stun:stun.l.google.com:19302'
+          url: 'turn:192.158.29.39:3478?transport=tcp',
+          credential: 'JZEOEt2V3Qb0y27GRntt2u2PAYA=',
+          username: '28224511:1379330808'
         }
       ]
     },
@@ -866,10 +900,26 @@ export default {
       }
 
       const constraints = {
-        video: true,
+        // video: true,
+        video: {
+          mandatory: {
+            maxWidth: 480,
+            maxHeight: 320
+          }
+        },
+        // audio: true,
         audio: {
-          echoCancellation: true,
-          noiseSuppression: true
+          // echoCancellation: true,
+          // noiseSuppression: true,
+          // googNoiseSuppression: true,
+          // googEchoCancellation: true,
+          googEchoCancellation: false,
+          googNoiseSuppression: false,
+          googHighpassFilter: false,
+          googTypingNoiseDetection: false,
+          sampleRate: 48000,
+          channelCount: 2,
+          volume: 1.0
         }
       }
 
@@ -918,6 +968,11 @@ export default {
       })
       localStorage.setItem('id', this.$socket.id)
       // sessionStorage.setItem('id', this.$socket.id)
+      this.$nextTick(() => {
+        const video = document.querySelector(`video[data-id="${this.$socket.id}"]`)
+        console.log(video)
+        video.muted = true
+      })
     },
     getFullscreen(id) {
       const video = document.querySelector(`video[data-id="${id}"]`)
@@ -975,7 +1030,8 @@ export default {
     },
     handleRemoteStreamAdded(event, peerUuid) {
       // console.log('Remote stream added.', peerUuid)
-      this.$set(this.findPc(peerUuid), 'stream', event.stream)
+      const player = this.findPc(peerUuid)
+      this.$set(player, 'stream', event.stream)
     },
     gotIceCandidate(event) {
       if (event.candidate != null) {
@@ -1059,7 +1115,8 @@ export default {
 
     canSeeToggleVideo(player) {
       return (
-        player.stream.getVideoTracks()[0] && (player.id === this.$socket.id || player.isInitiator)
+        player.stream.getVideoTracks()[0] &&
+        (player.id === this.$socket.id || this.findPc(this.$socket.id).isInitiator)
       )
     },
     toggleVideo({id, room, state = null}) {
@@ -1073,7 +1130,8 @@ export default {
 
     canSeeToggleAudio(player) {
       return (
-        player.stream.getAudioTracks()[0] && (player.id === this.$socket.id || player.isInitiator)
+        player.stream.getAudioTracks()[0] &&
+        (player.id === this.$socket.id || this.findPc(this.$socket.id).isInitiator)
       )
     },
     toggleAudio({id, room, state = null}) {

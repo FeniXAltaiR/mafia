@@ -1,14 +1,7 @@
-// const os = require('os')
-// const fs = require('fs')
-// const serverConfig = {
-//   key: fs.readFileSync('./security/key.pem'),
-//   cert: fs.readFileSync('./security/cert.pem'),
-// }
 const express = require('express')
 const app = express()
 const fetch = require('node-fetch')
 const cookieSession = require('cookie-session')
-// const https = require('http').createServer(app)
 const socketio = require('socket.io')
 
 app.use(express.static('public'))
@@ -135,7 +128,10 @@ sock.on('connect', socket => {
         id: settings.id,
         ...opts
       })
-      socket.to(room).emit('join', settings)
+      socket.to(room).emit('join', {
+        ...settings,
+        ...opts
+      })
     }
   })
 
@@ -169,17 +165,6 @@ sock.on('connect', socket => {
   socket.on('toggleAudio', ({id, room, state}) => {
     sock.in(room).emit('toggleAudio', {id, state})
   })
-
-  // socket.on('ipaddr', function() {
-  //   const ifaces = os.networkInterfaces()
-  //   for (const dev in ifaces) {
-  //     ifaces[dev].forEach(function(details) {
-  //       if (details.family === 'IPv4' && details.address !== '127.0.0.1') {
-  //         socket.emit('ipaddr', details.address)
-  //       }
-  //     })
-  //   }
-  // })
 
   socket.on('startGame', ({room}) => {
     const gameRoles = [
@@ -307,5 +292,3 @@ sock.on('connect', socket => {
     console.log('received bye')
   })
 })
-
-// https.listen(7000)

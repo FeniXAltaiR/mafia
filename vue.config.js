@@ -10,17 +10,15 @@ module.exports = {
   devServer: {
     proxy: {
       '/login': {
-        target: 'http://localhost:7000',
+        target: 'https://mafiozi.xyz',
         changeOrigin: true
       },
       '/test': {
-        // target: 'http://89.108.103.9:7000',
         target: 'https://mafiozi.xyz',
         changeOrigin: true
       },
       '/sock': {
-        target: 'http://89.108.103.9:7000',
-        // target: 'https://mafiozi.xyz',
+        target: 'https://mafiozi.xyz',
         changeOrigin: true
       }
     }
