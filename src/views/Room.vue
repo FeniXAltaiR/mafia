@@ -108,6 +108,7 @@
       v-model="peerConnections"
       ghostClass="ghost"
       class="align-center flex-wrap px-2 justify-center"
+      v-if="$route.params.room"
     >
       <v-col
         md="3"
@@ -143,6 +144,7 @@
                     <video
                       :srcObject.prop="player.stream"
                       autoplay
+                      :controls="false"
                       :style="getVideoStyle"
                       :data-id="player.id"
                     ></video>
@@ -178,13 +180,13 @@
                                 </v-slide-x-transition>
                               </template>
                               <v-list dense>
-                                <v-list-item
+                                <!-- <v-list-item
                                   @click="openDialogAlert({method: newInitiator, args: [player]})"
                                 >
                                   <v-list-item-title>{{
                                     $t('mafia.newInitiator')
                                   }}</v-list-item-title>
-                                </v-list-item>
+                                </v-list-item> -->
                                 <v-list-item
                                   @click="openDialogAlert({method: banPlayer, args: [player]})"
                                 >
@@ -318,9 +320,9 @@
                           <div class="bgtext bgtext--left px-1 py-2">
                             <span>{{ findIndexPc(player.id) + 1 }}. </span>
                             <span>{{ findPc(player.id).displayName }}</span>
-                            <span v-if="findPc(player.id).isInitiator">
+                            <!-- <span v-if="findPc(player.id).isInitiator">
                               ({{ $t('mafia.leader') }})</span
-                            >
+                            > -->
                           </div>
                           <v-slide-y-reverse-transition>
                             <v-icon v-if="activePlayer(player)" class="primary--text ml-2"
@@ -407,6 +409,13 @@
                   autofocus
                   label="Nickname*"
                   v-model="dialogSettings.displayName"
+                  required
+                  @keypress.enter="updateSettings"
+                ></v-text-field>
+                <v-text-field
+                  autofocus
+                  label="speech*"
+                  v-model="dialogSettings.speech"
                   required
                   @keypress.enter="updateSettings"
                 ></v-text-field>
@@ -537,31 +546,31 @@ export default {
       //   }
       // ]
       iceServers: [
-        {url: 'stun:stun01.sipphone.com'},
-        {url: 'stun:stun.ekiga.net'},
-        {url: 'stun:stun.fwdnet.net'},
-        {url: 'stun:stun.ideasip.com'},
-        {url: 'stun:stun.iptel.org'},
-        {url: 'stun:stun.rixtelecom.se'},
-        {url: 'stun:stun.schlund.de'},
-        {url: 'stun:stun.l.google.com:19302'},
-        {url: 'stun:stun1.l.google.com:19302'},
-        {url: 'stun:stun2.l.google.com:19302'},
-        {url: 'stun:stun3.l.google.com:19302'},
+        // {url: 'stun:stun01.sipphone.com'},
+        // {url: 'stun:stun.ekiga.net'},
+        // {url: 'stun:stun.fwdnet.net'},
+        // {url: 'stun:stun.ideasip.com'},
+        // {url: 'stun:stun.iptel.org'},
+        // {url: 'stun:stun.rixtelecom.se'},
+        // {url: 'stun:stun.schlund.de'},
+        // {url: 'stun:stun.l.google.com:19302'},
+        // {url: 'stun:stun1.l.google.com:19302'},
+        // {url: 'stun:stun2.l.google.com:19302'},
+        // {url: 'stun:stun3.l.google.com:19302'},
         {url: 'stun:stun4.l.google.com:19302'},
-        {url: 'stun:stunserver.org'},
-        {url: 'stun:stun.softjoys.com'},
-        {url: 'stun:stun.voiparound.com'},
-        {url: 'stun:stun.voipbuster.com'},
-        {url: 'stun:stun.voipstunt.com'},
-        {url: 'stun:stun.voxgratia.org'},
-        {url: 'stun:stun.xten.com'},
-        {url: 'turn:numb.viagenie.ca', credential: 'muazkh', username: 'webrtc@live.com'},
-        {
-          url: 'turn:192.158.29.39:3478?transport=udp',
-          credential: 'JZEOEt2V3Qb0y27GRntt2u2PAYA=',
-          username: '28224511:1379330808'
-        },
+        // {url: 'stun:stunserver.org'},
+        // {url: 'stun:stun.softjoys.com'},
+        // {url: 'stun:stun.voiparound.com'},
+        // {url: 'stun:stun.voipbuster.com'},
+        // {url: 'stun:stun.voipstunt.com'},
+        // {url: 'stun:stun.voxgratia.org'},
+        // {url: 'stun:stun.xten.com'},
+        // {url: 'turn:numb.viagenie.ca', credential: 'muazkh', username: 'webrtc@live.com'},
+        // {
+        //   url: 'turn:192.158.29.39:3478?transport=udp',
+        //   credential: 'JZEOEt2V3Qb0y27GRntt2u2PAYA=',
+        //   username: '28224511:1379330808'
+        // },
         {
           url: 'turn:192.158.29.39:3478?transport=tcp',
           credential: 'JZEOEt2V3Qb0y27GRntt2u2PAYA=',
@@ -586,7 +595,8 @@ export default {
 
     dialogSettings: {
       value: false,
-      displayName: ''
+      displayName: '',
+      speech: ''
     },
     dialogAlert: {
       value: false,
@@ -632,6 +642,9 @@ export default {
     },
     disconnectPlayer({id}) {
       this.isPause = true
+      const player = this.findPc(id)
+      this.$delete(player, 'stream')
+      this.$delete(player, 'pc')
     },
     test(msg) {
       console.dir(msg)
@@ -813,13 +826,6 @@ export default {
         dest: settings.id,
         ...mySettings
       })
-
-      if (mySettings.isInitiator) {
-        this.$socket.emit('statistics', {
-          id: settings.id,
-          stat: this.statistics
-        })
-      }
     },
     createOffer(settings) {
       console.log('CREATE OFFER')
@@ -891,6 +897,9 @@ export default {
   mounted() {
     this.setSpeechSettings()
   },
+  beforeDestroy() {
+    this.$socket.emit('leaveFromRoom', {room: this.room})
+  },
 
   methods: {
     init(type) {
@@ -902,6 +911,7 @@ export default {
       const constraints = {
         // video: true,
         video: {
+          // frameRate: { max: 30 },
           mandatory: {
             maxWidth: 480,
             maxHeight: 320
@@ -919,7 +929,10 @@ export default {
           googTypingNoiseDetection: false,
           sampleRate: 48000,
           channelCount: 2,
-          volume: 1.0
+          volume: 1.0,
+          echoCancellation: true,
+          noiseSuppression: false,
+          autoGainControl: true
         }
       }
 
@@ -931,12 +944,6 @@ export default {
           console.log('getUserMedia() error: ' + e.name)
         })
 
-      // if (location.hostname !== 'localhost') {
-      //   this.requestTurn(
-      //     'https://computeengineondemand.appspot.com/turn?username=41784574&key=4080218913'
-      //   )
-      // }
-
       // const audio = new Audio(require('@/assets/audio/test.mp3'))
       // audio.play()
     },
@@ -945,7 +952,6 @@ export default {
       const settings = {
         id: this.$socket.id,
         displayName: this.userData.name || localStorage.getItem('displayName'),
-        ids: [],
         room: this.room,
         killPlayers: [],
         votePlayers: [],
@@ -955,22 +961,22 @@ export default {
         isAudio: true,
         canCheck: true,
         canNominate: true,
-        isInitiator: false
+        isInitiator: true,
+        savedId: localStorage.getItem('id')
       }
       this.peerConnections.push({
         stream,
         ...settings
       })
       this.$socket.emit('join', {
-        ...settings,
-        savedId: localStorage.getItem('id')
-        // savedId: sessionStorage.getItem('id')
+        ...settings
       })
-      localStorage.setItem('id', this.$socket.id)
-      // sessionStorage.setItem('id', this.$socket.id)
+      if (!settings.savedId) {
+        localStorage.setItem('id', this.$socket.id)
+        this.$socket.emit('setSocketQuery', {id: this.$socket.id})
+      }
       this.$nextTick(() => {
         const video = document.querySelector(`video[data-id="${this.$socket.id}"]`)
-        console.log(video)
         video.muted = true
       })
     },
@@ -978,16 +984,16 @@ export default {
       const video = document.querySelector(`video[data-id="${id}"]`)
       video.requestFullscreen()
     },
-    setUpPeer({savedId, ...settings}) {
+    setUpPeer(settings) {
       // console.log('SET UP PEER')
       const {stream, isInitiator} = this.findPc(this.$socket.id)
       const player = {
         ...settings,
         pc: new RTCPeerConnection(this.pcConfig)
       }
-      const existPlayer = this.findPc(savedId)
+      // this.peerConnections.push(player)
+      const existPlayer = this.findPc(settings.savedId)
       if (existPlayer.id) {
-        existPlayer.ids.push(existPlayer.id)
         this.$set(existPlayer, 'pc', player.pc)
         this.$set(existPlayer, 'id', player.id)
         const {stream, pc, ...restSettings} = this.findPc(player.id)
@@ -1048,16 +1054,14 @@ export default {
       console.log(`connection with peer ${peerUuid} ${state}`)
       if (['failed', 'closed', 'disconnected'].includes(state)) {
         console.log('DELETE PEER', peerUuid)
-        if (this.findPc(this.$socket.id).isInitiator) {
-          this.isPause = true
-        }
-        if (this.findPc(peerUuid).isInitiator) {
-          const player = this.peerConnections
-            .filter(pc => pc.isAlive && !pc.isInitiator)
-            .sort((pcA, pcB) => (pcA.isAlive ? 1 : -1))
-            .find(pc => !pc.isInitiator)
-          this.newInitiator({id: player.id})
-        }
+        this.isPause = true
+        // if (this.findPc(peerUuid).isInitiator) {
+        //   const player = this.peerConnections
+        //     .filter(pc => pc.isAlive && !pc.isInitiator)
+        //     .sort((pcA, pcB) => (pcA.isAlive ? 1 : -1))
+        //     .find(pc => !pc.isInitiator)
+        //   this.newInitiator({id: player.id})
+        // }
         this.$delete(this.findPc(peerUuid), 'stream')
         this.$delete(this.findPc(peerUuid), 'pc')
         // this.peerConnections = this.peerConnections.filter(pc => pc.id !== peerUuid)
@@ -1065,34 +1069,6 @@ export default {
     },
     errorHandler(e) {
       console.error(e)
-    },
-    requestTurn(turnURL) {
-      let turnExists = false
-      for (const i in this.pcConfig.iceServers) {
-        if (this.pcConfig.iceServers[i].urls.substr(0, 5) === 'turn:') {
-          turnExists = true
-          this.turnReady = true
-          break
-        }
-      }
-      if (!turnExists) {
-        console.log('Getting TURN server from ', turnURL)
-        // No TURN server. Get one from computeengineondemand.appspot.com:
-        const xhr = new XMLHttpRequest()
-        xhr.onreadystatechange = function() {
-          if (xhr.readyState === 4 && xhr.status === 200) {
-            const turnServer = JSON.parse(xhr.responseText)
-            console.log('Got TURN server: ', turnServer)
-            this.pcConfig.iceServers.push({
-              urls: 'turn:' + turnServer.username + '@' + turnServer.turn,
-              credential: turnServer.password
-            })
-            this.turnReady = true
-          }
-        }
-        xhr.open('GET', turnURL, true)
-        xhr.send()
-      }
     },
 
     setSpeechSettings() {
@@ -1107,10 +1083,10 @@ export default {
     },
 
     findPc(id) {
-      return this.peerConnections.find(pc => pc.id === id || pc.ids.includes(id)) ?? {}
+      return this.peerConnections.find(pc => pc.id === id || pc.savedId === id) ?? {}
     },
     findIndexPc(id) {
-      return this.peerConnections.findIndex(pc => pc.id === id || pc.ids.includes(id)) ?? {}
+      return this.peerConnections.findIndex(pc => pc.id === id || pc.savedId === id) ?? {}
     },
 
     canSeeToggleVideo(player) {
@@ -1479,8 +1455,8 @@ export default {
     makeScreenshots() {
       this.$socket.emit('makeScreenshots', {room: this.room})
     },
-    activePlayer({id, ids, role}) {
-      return role && [id, ...ids].includes(this.gameInfo.active)
+    activePlayer({id, savedId, role}) {
+      return role && [id, savedId].includes(this.gameInfo.active)
     },
 
     // gameSteps
@@ -1946,6 +1922,7 @@ export default {
         id: this.$socket.id,
         room: this.room
       })
+      this.speechSpeak({text: this.dialogSettings.speech})
     },
     openDialogStat() {
       this.dialogStat.value = true
@@ -2019,4 +1996,7 @@ export default {
   opacity: 0.5
   background: #0079BF
   border-radius: 10px
+
+video::-webkit-media-controls
+  display:none !important
 </style>

@@ -12,7 +12,12 @@ import i18n from './i18n'
 Vue.use(
   new VueSocketio({
     // debug: true,
-    connection: '/sock'
+    connection: '/sock',
+    options: {
+      query: {
+        global_id: localStorage.getItem('id')
+      }
+    }
   })
 )
 

@@ -41,7 +41,9 @@
     <v-main>
       <v-container fluid style="background: #404040">
         <v-scale-transition mode="out-in">
+          <!-- <keep-alive> -->
           <router-view></router-view>
+          <!-- </keep-alive> -->
         </v-scale-transition>
       </v-container>
     </v-main>
@@ -69,7 +71,7 @@ export default {
   },
 
   mounted() {
-    fetch('/test')
+    // fetch('/test')
     // this.getToken()
   },
 

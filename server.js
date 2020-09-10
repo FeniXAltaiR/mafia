@@ -108,13 +108,36 @@ sock.on('connect', socket => {
     })
   })
 
+  socket.on('setSocketQuery', settings => {
+    const {query} = socket.handshake
+    Object.entries(settings).forEach(([key, value]) => {
+      query[key] = value
+    })
+  })
+
+  socket.on('leaveFromRoom', ({room}) => {
+    socket.leave(room)
+    socket.to(room).emit('disconnectPlayer', {id: socket.id})
+  })
+
   socket.on('join', async settings => {
     const {room} = settings
     const players = playersInRoom(room)
+    // socket.emit('test', Object.values(io.sockets.sockets).map(s => s.handshake.query))
+    // socket.emit('test', io.sockets.sockets[socket.id].handshake.query)
+    const existPlayerInRoom = () => {
+      const {global_id} = socket.handshake.query
+      const sameGlobalId = players.some(id => {
+        const socket_id = id.replace('/sock#', '')
+        const {query = {}} = io.sockets.sockets[socket_id]?.handshake
+        return query.global_id === global_id
+      })
+      return sameGlobalId
+    }
 
     if (players.length >= 20) {
       socket.emit('message', {msg: 'Room is fool'})
-    } else if (players.includes(settings.savedId)) {
+    } else if (existPlayerInRoom()) {
       socket.emit('message', {
         msg:
           'There is player in this room with the same id. Try to come in this room from another browser'
@@ -122,7 +145,8 @@ sock.on('connect', socket => {
     } else {
       socket.join(room)
       const opts = {
-        isInitiator: players.length === 0
+        // isInitiator: players.length === 0
+        isInitiator: true
       }
       sock.to(room).emit('updatePlayerInfo', {
         id: settings.id,
