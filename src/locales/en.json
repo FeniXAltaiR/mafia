@@ -41,7 +41,7 @@
     "confirm": "Confirm",
     "dead": "Dead",
     "statistics": "Statistic",
-    "undefinedRole": "EN Неизвестная роль",
+    "undefinedRole": "Undefined role",
     "cityWakeUp": "The city is waking up",
     "citySleep": "The city is falling asleep",
     "mafiaWakeUp": "The mafia is waking up",
@@ -53,7 +53,8 @@
     "doctorWakeUp": "The doctor is waking up",
     "doctorSleep": "The doctor is falling asleep",
     "mafiaWin": "Mafia has won",
-    "citizenWin": "Citizens have won"
+    "citizenWin": "Citizens have won",
+    "exit": "Exit from room"
   },
   "messages": {
     "confirm": "Confirm operation"

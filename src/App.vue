@@ -1,13 +1,13 @@
 <template>
-  <v-app>
+  <v-app style="background: black">
     <!-- <v-navigation-drawer app color="#0079BF" v-model="drawer">
     </v-navigation-drawer> -->
 
-    <v-app-bar app dark dense color="#0079BF" v-model="bar">
+    <v-app-bar app dark dense color="main_color" v-model="bar">
       <!-- <v-btn icon small class="mr-2" @click="toggleDrawer">
         <v-icon>mdi-menu</v-icon>
       </v-btn> -->
-      <h2 @click="goToMainPage" style="cursor: pointer;">MAFIA</h2>
+      <h2 @click="goToMainPage" style="cursor: pointer;">MAFIOZI</h2>
       <v-spacer></v-spacer>
       <v-menu absolute>
         <template v-slot:activator="{on}">
@@ -17,7 +17,7 @@
             </v-btn>
           </v-slide-x-transition>
         </template>
-        <v-list dense>
+        <v-list dense dark>
           <v-list-item @click="changeLang('ru')">
             <v-list-item-title>Rus</v-list-item-title>
           </v-list-item>
@@ -39,7 +39,7 @@
     </v-app-bar>
 
     <v-main>
-      <v-container fluid style="background: #404040">
+      <v-container fluid class="grey darken-4">
         <v-scale-transition mode="out-in">
           <!-- <keep-alive> -->
           <router-view></router-view>
@@ -70,12 +70,26 @@ export default {
     }
   },
 
+  watch: {
+    $route() {
+      this.setBar()
+    }
+  },
   mounted() {
     // fetch('/test')
     // this.getToken()
+    this.setBar()
   },
 
   methods: {
+    setBar() {
+      const {room} = this.$route.params
+      if (room) {
+        this.bar = false
+      } else {
+        this.bar = true
+      }
+    },
     toggleDrawer() {
       this.drawer = !this.drawer
     },

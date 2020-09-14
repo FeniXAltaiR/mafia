@@ -1,8 +1,11 @@
 <template>
   <div>
-    <v-row class="px-5">
-      <v-col md="5">
-        <v-row class="align-center">
+    <v-row class="px-5 justify-space-between">
+      <v-col md="2">
+        <v-row class="align-center"> </v-row>
+      </v-col>
+      <v-col md="4">
+        <v-row class="justify-center align-center">
           <h3
             class="mr-2 white--text"
             :class="{
@@ -12,75 +15,71 @@
           >
             {{ gameInfo.text }}
           </h3>
-        </v-row>
-      </v-col>
-      <v-col md="2">
-        <v-row class="justify-center align-center">
           <h3 class="mr-2 white--text">{{ getTime }}</h3>
-          <v-menu absolute>
+          <v-tooltip open-delay="250" bottom>
             <template v-slot:activator="{on}">
-              <v-slide-x-transition>
-                <v-btn icon v-on="on" class="white--text" v-if="!findPc($socket.id).stream">
-                  <v-icon>mdi-lan-connect</v-icon>
-                </v-btn>
-              </v-slide-x-transition>
-            </template>
-            <v-list dense>
-              <v-list-item @click="init('getUserMedia')">
-                <v-list-item-title>{{ $t('mafia.webcam') }}</v-list-item-title>
-              </v-list-item>
-              <v-list-item @click="init('getDisplayMedia')">
-                <v-list-item-title>{{ $t('mafia.screen') }}</v-list-item-title>
-              </v-list-item>
-            </v-list>
-          </v-menu>
-        </v-row>
-      </v-col>
-      <v-col md="5">
-        <v-row class="align-center justify-end">
-          <v-tooltip open-delay="250" top v-if="gameIsStarted && findPc($socket.id).isInitiator">
-            <template v-slot:activator="{on}">
-              <v-btn icon small @click="pauseGame" class="white--text" v-on="on">
+              <v-btn
+                icon
+                small
+                @click="pauseGame"
+                class="white--text"
+                v-on="on"
+                v-show="gameIsStarted && findPc($socket.id).isInitiator"
+              >
                 <v-icon>mdi-{{ isPause ? 'play' : 'pause' }}</v-icon>
               </v-btn>
             </template>
             <span>{{ isPause ? $t('mafia.play') : $t('mafia.pause') }}</span>
           </v-tooltip>
-          <v-tooltip open-delay="250" top v-if="!gameIsStarted && findPc($socket.id).isInitiator">
+          <v-tooltip open-delay="250" bottom>
             <template v-slot:activator="{on}">
-              <v-btn icon small @click="startGame" class="white--text" v-on="on">
+              <v-btn
+                icon
+                small
+                @click="startGame"
+                class="white--text"
+                v-on="on"
+                v-show="!gameIsStarted && findPc($socket.id).isInitiator"
+              >
                 <v-icon>mdi-play</v-icon>
               </v-btn>
             </template>
             <span>{{ $t('mafia.startGame') }}</span>
           </v-tooltip>
-          <v-tooltip open-delay="250" top v-if="gameIsStarted && findPc($socket.id).isInitiator">
+          <v-tooltip open-delay="250" bottom>
             <template v-slot:activator="{on}">
-              <v-btn icon small @click="addDuration" class="white--text" v-on="on">
+              <v-btn
+                icon
+                small
+                @click="addDuration"
+                class="white--text"
+                v-on="on"
+                v-show="gameIsStarted && findPc($socket.id).isInitiator"
+              >
                 <v-icon>mdi-plus</v-icon>
               </v-btn>
             </template>
             <span>{{ $t('mafia.addDuration') }}</span>
           </v-tooltip>
-          <v-tooltip open-delay="250" top v-if="gameIsStarted && findPc($socket.id).isInitiator">
+          <v-tooltip open-delay="250" bottom>
             <template v-slot:activator="{on}">
-              <v-btn icon small @click="goToNextStep" class="white--text" v-on="on">
+              <v-btn
+                icon
+                small
+                @click="goToNextStep"
+                class="white--text"
+                v-on="on"
+                v-show="gameIsStarted && findPc($socket.id).isInitiator"
+              >
                 <v-icon>mdi-skip-next</v-icon>
               </v-btn>
             </template>
             <span>{{ $t('mafia.goToNextStep') }}</span>
           </v-tooltip>
-          <v-tooltip open-delay="250" top v-if="!gameIsStarted && findPc($socket.id).isInitiator">
-            <template v-slot:activator="{on}">
-              <v-btn icon small @click="sortPlayers" class="white--text" v-on="on">
-                <v-icon>mdi-update</v-icon>
-              </v-btn>
-            </template>
-            <span>{{ $t('mafia.sortPlayers') }}</span>
-          </v-tooltip>
-          <v-tooltip open-delay="250" top v-if="gameIsStarted && findPc($socket.id).isInitiator">
+          <v-tooltip open-delay="250" bottom>
             <template v-slot:activator="{on}">
               <v-btn
+                v-show="gameIsStarted && findPc($socket.id).isInitiator"
                 icon
                 small
                 @click="openDialogAlert({method: endGame})"
@@ -92,13 +91,69 @@
             </template>
             <span>{{ $t('mafia.endGame') }}</span>
           </v-tooltip>
-          <v-tooltip open-delay="250" top v-if="!gameIsStarted && statistics.length">
+          <v-tooltip open-delay="250" bottom>
             <template v-slot:activator="{on}">
-              <v-btn icon small @click="openDialogStat" class="white--text" v-on="on">
+              <v-btn
+                icon
+                small
+                @click="openDialogStat"
+                class="white--text"
+                v-on="on"
+                v-show="!gameIsStarted && statistics.length"
+              >
                 <v-icon>mdi-view-list</v-icon>
               </v-btn>
             </template>
             <span>{{ $t('mafia.statistics') }}</span>
+          </v-tooltip>
+          <v-menu absolute>
+            <template v-slot:activator="{on}">
+              <v-slide-x-transition>
+                <v-btn icon v-on="on" class="white--text" v-show="!findPc($socket.id).stream">
+                  <v-icon>mdi-lan-connect</v-icon>
+                </v-btn>
+              </v-slide-x-transition>
+            </template>
+            <v-list dense dark>
+              <v-list-item @click="init('getUserMedia')">
+                <v-list-item-title>{{ $t('mafia.webcam') }}</v-list-item-title>
+              </v-list-item>
+              <v-list-item @click="init('getDisplayMedia')">
+                <v-list-item-title>{{ $t('mafia.screen') }}</v-list-item-title>
+              </v-list-item>
+            </v-list>
+          </v-menu>
+        </v-row>
+      </v-col>
+      <v-col md="2">
+        <v-row class="align-center justify-end">
+          <v-tooltip
+            open-delay="250"
+            bottom
+            v-if="!gameIsStarted && findPc($socket.id).isInitiator"
+          >
+            <template v-slot:activator="{on}">
+              <v-btn icon small @click="sortPlayers" class="white--text" v-on="on">
+                <v-icon>mdi-update</v-icon>
+              </v-btn>
+            </template>
+            <span>{{ $t('mafia.sortPlayers') }}</span>
+          </v-tooltip>
+          <v-tooltip open-delay="250" bottom>
+            <template v-slot:activator="{on}">
+              <v-btn icon class="white--text" v-on="on" @click="openDialogSettings">
+                <v-icon>mdi-cog</v-icon>
+              </v-btn>
+            </template>
+            <span>{{ $t('mafia.settings') }}</span>
+          </v-tooltip>
+          <v-tooltip open-delay="250" bottom>
+            <template v-slot:activator="{on}">
+              <v-btn icon class="white--text" v-on="on" @click="openDialogAlert({method: exit})">
+                <v-icon>mdi-exit-to-app</v-icon>
+              </v-btn>
+            </template>
+            <span>{{ $t('mafia.exit') }}</span>
           </v-tooltip>
         </v-row>
       </v-col>
@@ -122,7 +177,7 @@
         <template v-if="player.stream">
           <v-row class="justify-center px-2">
             <v-badge
-              color="primary"
+              color="accent_color"
               right
               bottom
               :content="player.nominateIndex"
@@ -156,7 +211,7 @@
                       <h1>{{ findPc(player.id).displayName }}</h1>
                     </div>
                     <div
-                      class="d-flex px-0 pb-1 pt-1 flex-column justify-space-between white--text"
+                      class="d-flex px-1 py-2 flex-column justify-space-between white--text"
                       style="height: 100%; width: 100%; position: absolute; top: 0; border-radius: 8px;"
                     >
                       <v-row class="justify-space-between">
@@ -168,7 +223,7 @@
                                   <v-btn
                                     icon
                                     v-on="on"
-                                    class="white--text"
+                                    class="white--text grey darken-4 mb-1"
                                     v-if="
                                       hover &&
                                         findPc($socket.id).isInitiator &&
@@ -179,7 +234,7 @@
                                   </v-btn>
                                 </v-slide-x-transition>
                               </template>
-                              <v-list dense>
+                              <v-list dense dark>
                                 <!-- <v-list-item
                                   @click="openDialogAlert({method: newInitiator, args: [player]})"
                                 >
@@ -199,7 +254,7 @@
                             <v-slide-x-transition>
                               <v-btn
                                 icon
-                                class="white--text"
+                                class="white--text grey darken-4 mb-1"
                                 @click="toggleVideo(player)"
                                 v-if="hover && canSeeToggleVideo(player)"
                               >
@@ -212,24 +267,12 @@
                             <v-slide-x-transition>
                               <v-btn
                                 icon
-                                class="white--text"
+                                class="white--text grey darken-4 mb-1"
                                 @click="toggleAudio(player)"
                                 v-if="hover && canSeeToggleAudio(player)"
                               >
                                 <v-icon v-if="player.isAudio">mdi-volume-high</v-icon>
                                 <v-icon v-else class="error--text">mdi-volume-off</v-icon>
-                              </v-btn>
-                            </v-slide-x-transition>
-                          </div>
-                          <div>
-                            <v-slide-x-transition>
-                              <v-btn
-                                v-if="hover && player.id === $socket.id"
-                                icon
-                                class="white--text"
-                                @click="openDialogSettings(player)"
-                              >
-                                <v-icon small>mdi-cog</v-icon>
                               </v-btn>
                             </v-slide-x-transition>
                           </div>
@@ -267,7 +310,7 @@
                             <v-btn
                               v-if="canCheckRole(player)"
                               icon
-                              class="warning--text white"
+                              class="warning--text grey darken-4"
                               @click="checkRole(player)"
                             >
                               <v-icon>mdi-magnify</v-icon>
@@ -278,7 +321,7 @@
                               v-if="canVoteForKill(player)"
                               icon
                               @click="voteForKill(player)"
-                              class="error--text white"
+                              class="error--text grey darken-4"
                             >
                               <v-icon>mdi-axe</v-icon>
                             </v-btn>
@@ -288,7 +331,7 @@
                               v-if="canHeal(player)"
                               icon
                               @click="heal(player)"
-                              class="primary--text white"
+                              class="primary--text grey darken-4"
                             >
                               <v-icon>mdi-bottle-tonic-plus</v-icon>
                             </v-btn>
@@ -298,7 +341,7 @@
                               v-if="canNomination(player)"
                               icon
                               @click="nomination(player)"
-                              class="primary--text white"
+                              class="primary--text grey darken-4"
                             >
                               <v-icon>mdi-account-alert</v-icon>
                             </v-btn>
@@ -308,7 +351,7 @@
                               v-if="canVoteForExile(player)"
                               icon
                               @click="voteForExile(player)"
-                              class="primary--text white"
+                              class="primary--text grey darken-4"
                             >
                               <v-icon>mdi-account-check</v-icon>
                             </v-btn>
@@ -317,8 +360,10 @@
                       </v-row>
                       <div class="d-flex justify-space-between align-end">
                         <div class="d-flex align-end">
-                          <div class="bgtext bgtext--left px-1 py-2">
-                            <span>{{ findIndexPc(player.id) + 1 }}. </span>
+                          <div class="bgtext bgtext--left px-2 py-2 elevation-4 grey darken-4">
+                            <span class="font-weight-black"
+                              >{{ findIndexPc(player.id) + 1 }} |
+                            </span>
                             <span>{{ findPc(player.id).displayName }}</span>
                             <!-- <span v-if="findPc(player.id).isInitiator">
                               ({{ $t('mafia.leader') }})</span
@@ -337,34 +382,41 @@
                             >
                           </v-slide-y-reverse-transition>
                           <v-slide-x-transition>
-                            <div class="bgtext bgtext--right px-1 py-1">
-                              <span class="mr-2">{{ $t(`mafia.${formatRole(player)}`) }}</span>
-                              <v-slide-x-transition>
-                                <v-icon v-if="formatRole(player) === 'mafia'" class="error--text"
-                                  >mdi-alien</v-icon
-                                >
-                                <v-icon
-                                  v-else-if="formatRole(player) === 'boss'"
-                                  class="error--text"
-                                  >mdi-alpha-w-circle</v-icon
-                                >
-                                <v-icon
-                                  v-else-if="formatRole(player) === 'citizen'"
-                                  class="success--text"
-                                  >mdi-baby-face</v-icon
-                                >
-                                <v-icon
-                                  v-else-if="formatRole(player) === 'detective'"
-                                  class="warning--text"
-                                  >mdi-binoculars</v-icon
-                                >
-                                <v-icon
-                                  v-else-if="formatRole(player) === 'doctor'"
-                                  class="success--text"
-                                  >mdi-medical-bag</v-icon
-                                >
-                                <v-icon v-else class="grey--text">mdi-artstation</v-icon>
-                              </v-slide-x-transition>
+                            <div class="bgtext bgtext--right px-2 py-1 elevation-4 accent_color">
+                              <!-- <span class="mr-2">{{ $t(`mafia.${formatRole(player)}`) }}</span> -->
+                              <v-tooltip open-delay="250" top>
+                                <template v-slot:activator="{on}">
+                                  <div v-on="on">
+                                    <v-icon
+                                      v-if="formatRole(player) === 'mafia'"
+                                      class="black--text"
+                                      >mdi-alien</v-icon
+                                    >
+                                    <v-icon
+                                      v-else-if="formatRole(player) === 'boss'"
+                                      class="black--text"
+                                      >mdi-alpha-w-circle</v-icon
+                                    >
+                                    <v-icon
+                                      v-else-if="formatRole(player) === 'citizen'"
+                                      class="main_color--text"
+                                      >mdi-baby-face</v-icon
+                                    >
+                                    <v-icon
+                                      v-else-if="formatRole(player) === 'detective'"
+                                      class="main_color--text"
+                                      >mdi-binoculars</v-icon
+                                    >
+                                    <v-icon
+                                      v-else-if="formatRole(player) === 'doctor'"
+                                      class="main_color--text"
+                                      >mdi-medical-bag</v-icon
+                                    >
+                                    <v-icon v-else>mdi-artstation</v-icon>
+                                  </div>
+                                </template>
+                                <span>{{ $t(`mafia.${formatRole(player)}`) }}</span>
+                              </v-tooltip>
                             </div>
                           </v-slide-x-transition>
                         </div>
@@ -396,10 +448,13 @@
         </template>
       </v-col>
     </draggable>
-    <v-dialog v-model="dialogSettings.value" persistent max-width="600px">
+    <v-dialog v-model="dialogSettings.value" persistent max-width="600px" dark>
       <v-card>
-        <v-card-title>
+        <v-card-title class="justify-space-between">
           <span class="headline">{{ $t('mafia.settings') }}</span>
+          <v-btn icon small color="main_color" @click="dialogSettings.value = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
         </v-card-title>
         <v-card-text>
           <v-container>
@@ -411,13 +466,16 @@
                   v-model="dialogSettings.displayName"
                   required
                   @keypress.enter="updateSettings"
+                  color="main_color"
                 ></v-text-field>
                 <v-text-field
+                  v-if="findPc($socket.id).isInitiator"
                   autofocus
                   label="speech*"
                   v-model="dialogSettings.speech"
                   required
                   @keypress.enter="updateSettings"
+                  color="main_color"
                 ></v-text-field>
               </v-col>
             </v-row>
@@ -425,18 +483,15 @@
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn color="blue darken-1" text @click="dialogSettings.value = false">{{
-            $t('mafia.close')
-          }}</v-btn>
-          <v-btn color="blue darken-1" text @click="updateSettings">{{ $t('mafia.save') }}</v-btn>
+          <v-btn color="accent_color" text @click="updateSettings">{{ $t('mafia.save') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
-    <v-dialog v-model="dialogAlert.value" persistent max-width="600px">
-      <v-card class="primary">
-        <v-alert type="warning" color="transparent" close-icon="mdi-axe" class="mb-0">
+    <v-dialog v-model="dialogAlert.value" persistent max-width="600px" dark>
+      <v-card>
+        <v-alert type="warning" color="transparent" class="mb-0">
           <template v-slot:close>
-            <v-btn icon small @click="dialogAlert.value = false">
+            <v-btn icon small color="main_color" @click="dialogAlert.value = false">
               <v-icon>mdi-close</v-icon>
             </v-btn>
           </template>
@@ -444,30 +499,26 @@
         </v-alert>
 
         <div class="pb-2">
-          <v-divider class="info" style="opacity: 0.22"></v-divider>
+          <v-divider class="accent_color" style="opacity: 0.22"></v-divider>
         </div>
 
         <v-card-actions class="justify-end">
-          <v-btn class="primary darken-1" text @click="confirmDialogAlert">
+          <v-btn color="accent_color" text @click="confirmDialogAlert">
             {{ $t('mafia.confirm') }}
           </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
     <v-dialog v-model="dialogStat.value" persistent max-width="1280px">
-      <v-row
-        class="justify-space-between align-center mx-0 py-2 px-1 white--text"
-        style="background: rgba(25, 118, 210, .9)"
-      >
+      <v-row class="justify-space-between align-center mx-0 py-2 px-1 grey darken-4 white--text">
         <span class="text-center display-2">{{ $t('mafia.statistics') }}</span>
-        <v-btn icon small @click="dialogStat.value = false" class="white--text">
+        <v-btn icon small color="main_color" @click="dialogStat.value = false">
           <v-icon>mdi-close</v-icon>
         </v-btn>
       </v-row>
-      <v-divider class="info"></v-divider>
+      <v-divider class="accent_color"></v-divider>
       <v-card
-        class="px-2 pt-2 white--text"
-        style="background: rgba(25, 118, 210, .78)"
+        class="px-2 pt-2 grey darken-4 white--text"
         flat
         tile
         v-for="(stat, index) in statistics"
@@ -516,7 +567,7 @@
               </v-row>
             </v-col>
           </v-row>
-          <v-divider class="info"></v-divider>
+          <v-divider class="accent_color"></v-divider>
         </template>
       </v-card>
     </v-dialog>
@@ -537,14 +588,6 @@ export default {
   data: () => ({
     turnReady: null,
     pcConfig: {
-      // iceServers: [
-      //   {
-      //     urls: 'stun:stun.stunprotocol.org:3478'
-      //   },
-      //   {
-      //     urls: 'stun:stun.l.google.com:19302'
-      //   }
-      // ]
       iceServers: [
         // {url: 'stun:stun01.sipphone.com'},
         // {url: 'stun:stun.ekiga.net'},
@@ -616,8 +659,7 @@ export default {
       return {
         'max-height': `calc((100vh - 120px - ${rows * 20}px) / ${rows})`,
         'max-width': '100%',
-        'border-radius': '8px',
-        border: '2px solid grey'
+        'border-radius': '8px'
       }
     },
     getTime() {
@@ -1910,9 +1952,10 @@ export default {
         args: []
       }
     },
-    openDialogSettings({displayName}) {
+    openDialogSettings() {
+      const player = this.findPc(this.$socket.id)
       this.dialogSettings.value = true
-      this.dialogSettings.displayName = displayName
+      this.dialogSettings.displayName = player.displayName
     },
     updateSettings() {
       this.dialogSettings.value = false
@@ -1974,6 +2017,9 @@ export default {
     removeNextStep() {
       this.gameSteps.shift()
       this.$socket.emit('updateRoomInfo', {id: this.room, gameSteps: this.gameSteps})
+    },
+    exit() {
+      this.$router.push('/')
     }
   }
 }
@@ -1985,16 +2031,17 @@ export default {
     cursor: pointer
 
 .bgtext
-  background: rgba(128, 128, 128, .9)
+  // background: #499500
   &--left
-    border-radius: 0 8px 0 8px
-    margin-left: 1px
+    // border-radius: 0 8px 0 8px
+    border-radius: 8px
   &--right
-    border-radius: 8px 0 8px 0
+    // border-radius: 8px 0 8px 0
+    border-radius: 8px
 
 .ghost
-  opacity: 0.5
-  background: #0079BF
+  opacity: 0.25
+  background: #920031
   border-radius: 10px
 
 video::-webkit-media-controls

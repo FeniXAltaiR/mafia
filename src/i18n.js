@@ -17,7 +17,7 @@ function loadLocaleMessages() {
 }
 
 export default new VueI18n({
-  locale: localStorage.getItem('locale') || 'en',
-  fallbackLocale: localStorage.getItem('locale') || 'en',
+  locale: localStorage.getItem('locale') || 'ru',
+  fallbackLocale: localStorage.getItem('locale') || 'ru',
   messages: loadLocaleMessages()
 })

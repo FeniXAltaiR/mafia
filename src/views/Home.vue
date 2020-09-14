@@ -1,6 +1,6 @@
 <template>
   <v-row class="px-2 justify-center">
-    <v-btn color="#0067A3" class="px-4 py-16 white--text" @click="createRoom">{{
+    <v-btn color="accent_color" class="px-4 white--text" @click="createRoom">{{
       $t('main.createRoom')
     }}</v-btn>
   </v-row>
