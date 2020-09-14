@@ -940,6 +940,12 @@ export default {
     this.setSpeechSettings()
   },
   beforeDestroy() {
+    const {stream = null} = this.findPc(this.$socket.id)
+    if (stream) {
+      stream.getTracks().forEach(track => {
+        track.stop()
+      })
+    }
     this.$socket.emit('leaveFromRoom', {room: this.room})
   },
 
