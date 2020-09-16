@@ -67,6 +67,9 @@ export default {
   sockets: {
     connect() {
       console.log('CONNECT:', this.$socket.id)
+      if (!localStorage.getItem('id')) {
+        localStorage.setItem('id', this.$socket.id)
+      }
     }
   },
 

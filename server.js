@@ -89,6 +89,7 @@ app.get('/test', (req, res) => {
 
 const server = app.listen(7000)
 
+const connections = {}
 const io = socketio(server)
 const sock = io.of('/sock')
 sock.on('connect', socket => {
@@ -98,6 +99,37 @@ sock.on('connect', socket => {
 
     return players
   }
+  const getRooms = () => {
+    const {rooms: sockets = {}} = io.nsps['/sock'].adapter
+    const rooms = Object.keys(sockets).filter(room => !room.startsWith('/sock#'))
+    return rooms
+  }
+  const addSocketToConnections = () => {
+    const socket_id = socket.id.replace('/sock#', '')
+    // const {query = {}} = io.sockets.sockets?.[socket_id]?.handshake ?? {}
+    const {query = {}} = socket?.handshake ?? {}
+
+    if (query.global_id === 'null') {
+      query.global_id = socket.id
+    }
+
+    connections[socket.id] = {
+      id: socket.id,
+      global_id: query.global_id
+    }
+  }
+  const updateRoomInfo = ({room, ...settings}) => {
+    if (connections[room]) {
+      Object.entries(settings).forEach(([key, value]) => {
+        connections[room][key] = value
+      })
+      socket.to(room).emit('updateRoomInfo', settings)
+    }
+  }
+
+  addSocketToConnections()
+  socket.emit('test', connections)
+
   socket.on('disconnecting', () => {
     const rooms = Object.keys(socket.rooms)
 
@@ -106,25 +138,24 @@ sock.on('connect', socket => {
         id: socket.id
       })
     })
-  })
 
-  socket.on('setSocketQuery', settings => {
-    const {query} = socket.handshake
-    Object.entries(settings).forEach(([key, value]) => {
-      query[key] = value
-    })
+    delete connections[socket.id]
   })
 
   socket.on('leaveFromRoom', ({room}) => {
     socket.leave(room)
+
+    const players = playersInRoom(room)
+    if (!players.length) {
+      delete connections[room]
+    }
+
     socket.to(room).emit('disconnectPlayer', {id: socket.id})
   })
 
   socket.on('join', async settings => {
     const {room} = settings
     const players = playersInRoom(room)
-    // socket.emit('test', Object.values(io.sockets.sockets).map(s => s.handshake.query))
-    // socket.emit('test', io.sockets.sockets[socket.id].handshake.query)
     const existPlayerInRoom = () => {
       const {global_id} = socket.handshake.query
       const sameGlobalId = players.some(id => {
@@ -133,6 +164,46 @@ sock.on('connect', socket => {
         return query.global_id === global_id
       })
       return sameGlobalId
+    }
+    const addRoomToConnections = room => {
+      connections[room] = {
+        nominateIndex: 1,
+        duration: 0,
+        gameSteps: [],
+        gameInfo: {},
+        statistics: [],
+        isPause: false,
+        gameIsStarted: false,
+        isSecondVoting: false,
+        peerConnections: {}
+      }
+    }
+    const addPlayertoRoom = () => {
+      const {global_id} = socket.handshake.query
+      const {peerConnections, ...roomSettings} = connections[room]
+      const existPlayer = Object.values(peerConnections).find(pc => pc.global_id === global_id)
+      if (existPlayer) {
+        const player = {
+          ...settings,
+          ...existPlayer,
+          id: socket.id,
+          isInitiator: players.length === 0
+        }
+        connections[room].peerConnections[socket.id] = player
+        delete peerConnections[existPlayer.id]
+        sock.to(room).emit('updatePlayerInfo', player)
+        socket.emit('updateRoomInfo', roomSettings)
+        socket.to(room).emit('join', player)
+      } else {
+        const newPlayer = {
+          ...settings,
+          isInitiator: players.length === 0
+        }
+        connections[room].peerConnections[socket.id] = newPlayer
+        sock.to(room).emit('updatePlayerInfo', newPlayer)
+        socket.emit('updateRoomInfo', roomSettings)
+        socket.to(room).emit('join', newPlayer)
+      }
     }
 
     if (players.length >= 20) {
@@ -144,18 +215,10 @@ sock.on('connect', socket => {
       })
     } else {
       socket.join(room)
-      const opts = {
-        // isInitiator: players.length === 0
-        isInitiator: true
+      if (!players.length) {
+        addRoomToConnections(room)
       }
-      sock.to(room).emit('updatePlayerInfo', {
-        id: settings.id,
-        ...opts
-      })
-      socket.to(room).emit('join', {
-        ...settings,
-        ...opts
-      })
+      addPlayertoRoom()
     }
   })
 
@@ -175,22 +238,33 @@ sock.on('connect', socket => {
   })
 
   socket.on('updatePlayerInfo', settings => {
-    socket.to(settings.id).emit('updatePlayerInfo', settings)
+    const {peerConnections} = connections?.[settings.room] ?? {}
+    if (peerConnections?.[settings.id]) {
+      peerConnections[settings.id] = {
+        ...peerConnections[settings.id],
+        ...settings
+      }
+    }
+    sock.to(settings.room).emit('updatePlayerInfo', settings)
   })
 
-  socket.on('updateRoomInfo', ({id, ...settings}) => {
-    socket.to(id).emit('updateRoomInfo', settings)
+  socket.on('updateRoomInfo', settings => {
+    updateRoomInfo(settings)
   })
 
   socket.on('toggleVideo', ({id, room, state}) => {
+    const {peerConnections} = connections[room]
+    peerConnections[id].isVideo = state
     sock.in(room).emit('toggleVideo', {id, state})
   })
 
   socket.on('toggleAudio', ({id, room, state}) => {
+    const {peerConnections} = connections[room]
+    peerConnections[id].isAudio = state
     sock.in(room).emit('toggleAudio', {id, state})
   })
 
-  socket.on('startGame', ({room}) => {
+  socket.on('startGame', ({room, ...settings}) => {
     const gameRoles = [
       'mafia',
       'citizen',
@@ -214,44 +288,22 @@ sock.on('connect', socket => {
       .sort(() => (Math.random() >= 0.5 ? 1 : -1))
       .forEach(id => {
         const role = gameRoles.pop() ?? 'citizen'
+        const {peerConnections} = connections[room]
+        peerConnections[id].role = role
         sock.to(room).emit('getRole', {
           id,
           role
         })
       })
-    socket.to(room).emit('startGame')
+    updateRoomInfo({room, ...settings})
   })
 
-  socket.on('setGameInfo', info => {
-    socket.to(info.room).emit('setGameInfo', info)
-  })
-
-  socket.on('makeScreenshots', ({room}) => {
-    sock.to(room).emit('makeScreenshots')
-  })
-
-  socket.on('addStat', ({room, ...stat}) => {
-    sock.to(room).emit('addStat', stat)
-  })
-
-  socket.on('statistics', ({id, stat}) => {
-    socket.to(id).emit('statistics', stat)
+  socket.on('setGameInfo', ({room, gameInfo}) => {
+    updateRoomInfo({room, gameInfo})
   })
 
   socket.on('sortPlayers', ({room, players}) => {
     sock.to(room).emit('sortPlayers', {players})
-  })
-
-  socket.on('resetGameNight', ({room}) => {
-    sock.to(room).emit('resetGameNight')
-  })
-
-  socket.on('resetGameDay', ({room}) => {
-    sock.to(room).emit('resetGameDay')
-  })
-
-  socket.on('endGame', ({room}) => {
-    sock.to(room).emit('endGame')
   })
 
   socket.on('newInitiator', ({id, room}) => {
@@ -260,52 +312,8 @@ sock.on('connect', socket => {
     })
   })
 
-  socket.on('secondVoting', ({room, players}) => {
-    socket.to(room).emit('secondVoting', players)
-  })
-
-  socket.on('updateSettings', settings => {
-    sock.to(settings.room).emit('updateSettings', settings)
-  })
-
-  socket.on('time', ({room, duration}) => {
-    socket.to(room).emit('time', {
-      duration
-    })
-  })
-
   socket.on('speechSpeak', ({room, text}) => {
     sock.to(room).emit('speechSpeak', {text})
-  })
-
-  socket.on('voteForKill', ({fromId, toId, room}) => {
-    sock.to(room).emit('voteForKill', {
-      fromId,
-      toId
-    })
-  })
-
-  socket.on('voteForExile', ({fromId, toId, room}) => {
-    sock.to(room).emit('voteForExile', {
-      fromId,
-      toId
-    })
-  })
-
-  socket.on('kill', ({id, room}) => {
-    sock.to(room).emit('kill', {
-      id
-    })
-  })
-
-  socket.on('heal', ({toId, room}) => {
-    sock.to(room).emit('heal', {
-      toId
-    })
-  })
-
-  socket.on('nomination', ({id, room}) => {
-    sock.to(room).emit('nomination', {id})
   })
 
   socket.on('banPlayer', ({id, room}) => {

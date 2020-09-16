@@ -365,9 +365,9 @@
                               >{{ findIndexPc(player.id) + 1 }} |
                             </span>
                             <span>{{ findPc(player.id).displayName }}</span>
-                            <!-- <span v-if="findPc(player.id).isInitiator">
+                            <span v-if="findPc(player.id).isInitiator">
                               ({{ $t('mafia.leader') }})</span
-                            > -->
+                            >
                           </div>
                           <v-slide-y-reverse-transition>
                             <v-icon v-if="activePlayer(player)" class="primary--text ml-2"
@@ -586,7 +586,6 @@ export default {
   },
 
   data: () => ({
-    turnReady: null,
     pcConfig: {
       iceServers: [
         // {url: 'stun:stun01.sipphone.com'},
@@ -691,9 +690,6 @@ export default {
     test(msg) {
       console.dir(msg)
     },
-    time({duration}) {
-      this.duration = duration
-    },
     speechSpeak({text}) {
       this.speechSynthesisUtterance.text = text
       window.speechSynthesis.cancel()
@@ -709,45 +705,8 @@ export default {
       })
     },
     getRole({id, role}) {
-      this.$set(this.findPc(id), 'isVisibleRole', false)
+      this.$set(this.findPc(id), 'isVisibleRole', [])
       this.$set(this.findPc(id), 'role', role)
-      // this.$set(this.findPc(uuid), 'displayName', role)
-    },
-    voteForKill({fromId, toId}) {
-      this.peerConnections.forEach(pc => {
-        if (pc.id === toId) {
-          pc.killPlayers.push(fromId)
-        } else {
-          pc.killPlayers = pc.killPlayers.filter(player => player !== fromId)
-        }
-      })
-    },
-    voteForExile({fromId, toId}) {
-      this.peerConnections.forEach(pc => {
-        if (pc.id === toId) {
-          pc.votePlayers.push(fromId)
-        } else {
-          pc.votePlayers = pc.votePlayers.filter(player => player !== fromId)
-        }
-      })
-    },
-    heal({toId}) {
-      this.peerConnections.forEach(pc => {
-        if (pc.id === toId) {
-          this.$set(pc, 'isHeal', true)
-        } else {
-          this.$set(pc, 'isHeal', false)
-        }
-      })
-    },
-    kill({id}) {
-      this.$set(this.findPc(id), 'isAlive', false)
-      this.$set(this.findPc(id), 'isDeadLastRound', true)
-    },
-    nomination({id}) {
-      this.$set(this.findPc(id), 'isNominate', true)
-      this.$set(this.findPc(id), 'nominateIndex', this.nominateIndex)
-      this.nominateIndex += 1
     },
     newInitiator({id}) {
       this.peerConnections.forEach(pc => {
@@ -760,14 +719,9 @@ export default {
         }
       }
     },
-    secondVoting(players) {
-      this.secondVoting(players)
-    },
-    updateSettings({id, displayName}) {
-      this.$set(this.findPc(id), 'displayName', displayName)
-    },
-    updatePlayerInfo({id, ...settings}) {
-      const player = this.findPc(id)
+    updatePlayerInfo(settings) {
+      const player = this.findPc(settings.global_id || settings.id)
+      // console.log('PLAYER_INFO', player)
       if (player.id) {
         Object.entries(settings).forEach(([key, value]) => {
           this.$set(player, key, value)
@@ -775,80 +729,10 @@ export default {
       }
     },
     updateRoomInfo(settings) {
+      // console.log('ROOM_INFO', settings)
       Object.entries(settings).forEach(([key, value]) => {
         this[key] = value
       })
-    },
-    setGameInfo(info) {
-      this.gameInfo = info
-    },
-    makeScreenshots() {
-      const canvas = document.querySelector('canvas')
-      const videos = document.querySelectorAll('video')
-
-      videos.forEach(video => {
-        canvas.width = video.videoWidth
-        canvas.height = video.videoHeight
-        canvas.getContext('2d').drawImage(video, 0, 0)
-
-        const src = canvas.toDataURL('image/png')
-        const player = this.findPc(video.dataset.id)
-        this.$set(player, 'src', src)
-      })
-
-      canvas.width = 0
-      canvas.height = 0
-    },
-    addStat(stat) {
-      const lastEl = this.statistics[this.statistics.length - 1] ?? {}
-      if (lastEl.title === stat.title) {
-        lastEl.players = [...lastEl.players, ...stat.players]
-      } else {
-        this.statistics.push(stat)
-      }
-    },
-    statistics(stat) {
-      this.statistics = stat
-    },
-    resetGameNight() {
-      this.peerConnections.forEach(pc => {
-        if (pc.isHeal) {
-          this.$set(pc, 'isHealedLastRound', true)
-        } else if (pc.isHealedLastRound && !pc.isHeal) {
-          this.$set(pc, 'isHealedLastRound', false)
-        }
-        this.$set(pc, 'isHeal', false)
-        this.$set(pc, 'killPlayers', [])
-        this.$set(pc, 'canCheck', true)
-      })
-    },
-    resetGameDay() {
-      this.peerConnections.forEach(pc => {
-        this.$set(pc, 'isNominate', false)
-        this.$set(pc, 'nominateIndex', 0)
-        this.$set(pc, 'votePlayers', [])
-        this.$set(pc, 'isDeadLastRound', false)
-        this.$set(pc, 'canNominate', true)
-      })
-      this.nominateIndex = 1
-      this.isSecondVoting = false
-    },
-    startGame() {
-      this.gameIsStarted = true
-      this.isPause = false
-      this.statistics = []
-      this.gameSteps = [...this.randezvous()]
-    },
-    endGame() {
-      this.$socket.emit('resetGameNight', {room: this.room})
-      this.$socket.emit('resetGameDay', {room: this.room})
-      this.peerConnections.forEach(pc => {
-        this.$set(pc, 'isAlive', true)
-        this.$set(pc, 'isVisibleRole', true)
-      })
-      this.duration = 0
-      this.isSecondVoting = false
-      this.gameIsStarted = false
     },
     banPlayer({id}) {
       this.peerConnections = this.peerConnections.filter(pc => pc.id !== id)
@@ -861,7 +745,7 @@ export default {
       this.$router.push('/')
     },
     join(settings) {
-      console.log('JOIN')
+      // console.log('JOIN')
       const {stream, pc, ...mySettings} = this.findPc(this.$socket.id)
       this.setUpPeer(settings)
       this.$socket.emit('createOffer', {
@@ -870,7 +754,7 @@ export default {
       })
     },
     createOffer(settings) {
-      console.log('CREATE OFFER')
+      // console.log('CREATE OFFER')
       this.setUpPeer(settings)
       this.findPc(settings.id)
         .pc.createOffer()
@@ -920,19 +804,6 @@ export default {
         })
         this.$set(player, 'isAudio', state)
       }
-    },
-    updatePc({id, ...opts}) {
-      const player = this.findPc(id)
-      if (player.id) {
-        Object.entries(opts).forEach(([key, value]) => {
-          this.$set(player, key, value)
-        })
-      }
-    },
-    updateRoom(opts) {
-      Object.entries(opts).forEach(([key, value]) => {
-        this[key] = value
-      })
     }
   },
 
@@ -1009,8 +880,9 @@ export default {
         isAudio: true,
         canCheck: true,
         canNominate: true,
-        isInitiator: true,
-        savedId: localStorage.getItem('id')
+        isInitiator: false,
+        isVisibleRole: [],
+        global_id: localStorage.getItem('id')
       }
       this.peerConnections.push({
         stream,
@@ -1019,10 +891,6 @@ export default {
       this.$socket.emit('join', {
         ...settings
       })
-      if (!settings.savedId) {
-        localStorage.setItem('id', this.$socket.id)
-        this.$socket.emit('setSocketQuery', {id: this.$socket.id})
-      }
       this.$nextTick(() => {
         const video = document.querySelector(`video[data-id="${this.$socket.id}"]`)
         video.muted = true
@@ -1034,31 +902,15 @@ export default {
     },
     setUpPeer(settings) {
       // console.log('SET UP PEER')
-      const {stream, isInitiator} = this.findPc(this.$socket.id)
+      const {stream} = this.findPc(this.$socket.id)
       const player = {
         ...settings,
         pc: new RTCPeerConnection(this.pcConfig)
       }
       // this.peerConnections.push(player)
-      const existPlayer = this.findPc(settings.savedId)
+      const existPlayer = this.findPc(settings.global_id)
       if (existPlayer.id) {
         this.$set(existPlayer, 'pc', player.pc)
-        this.$set(existPlayer, 'id', player.id)
-        const {stream, pc, ...restSettings} = this.findPc(player.id)
-        if (isInitiator) {
-          this.$socket.emit('updatePlayerInfo', restSettings)
-          this.$socket.emit('updateRoomInfo', {
-            id: restSettings.id,
-            nominateIndex: this.nominateIndex,
-            duration: this.duration,
-            gameSteps: this.gameSteps,
-            gameInfo: this.gameInfo,
-            statistics: this.statistics,
-            isPause: this.isPause,
-            gameIsStarted: this.gameIsStarted,
-            isSecondVoting: this.isSecondVoting
-          })
-        }
       } else {
         this.peerConnections.push(player)
       }
@@ -1100,20 +952,20 @@ export default {
     checkPeerDisconnect(event, peerUuid) {
       const state = this.findPc(peerUuid)?.pc?.iceConnectionState
       console.log(`connection with peer ${peerUuid} ${state}`)
-      if (['failed', 'closed', 'disconnected'].includes(state)) {
-        console.log('DELETE PEER', peerUuid)
-        this.isPause = true
-        // if (this.findPc(peerUuid).isInitiator) {
-        //   const player = this.peerConnections
-        //     .filter(pc => pc.isAlive && !pc.isInitiator)
-        //     .sort((pcA, pcB) => (pcA.isAlive ? 1 : -1))
-        //     .find(pc => !pc.isInitiator)
-        //   this.newInitiator({id: player.id})
-        // }
-        this.$delete(this.findPc(peerUuid), 'stream')
-        this.$delete(this.findPc(peerUuid), 'pc')
-        // this.peerConnections = this.peerConnections.filter(pc => pc.id !== peerUuid)
-      }
+      // if (['failed', 'closed', 'disconnected'].includes(state)) {
+      //   console.log('DELETE PEER', peerUuid)
+      //   this.isPause = true
+      // if (this.findPc(peerUuid).isInitiator) {
+      //   const player = this.peerConnections
+      //     .filter(pc => pc.isAlive && !pc.isInitiator)
+      //     .sort((pcA, pcB) => (pcA.isAlive ? 1 : -1))
+      //     .find(pc => !pc.isInitiator)
+      //   this.newInitiator({id: player.id})
+      // }
+      // this.$delete(this.findPc(peerUuid), 'stream')
+      // this.$delete(this.findPc(peerUuid), 'pc')
+      // this.peerConnections = this.peerConnections.filter(pc => pc.id !== peerUuid)
+      // }
     },
     errorHandler(e) {
       console.error(e)
@@ -1131,10 +983,10 @@ export default {
     },
 
     findPc(id) {
-      return this.peerConnections.find(pc => pc.id === id || pc.savedId === id) ?? {}
+      return this.peerConnections.find(pc => pc.id === id || pc.global_id === id) ?? {}
     },
     findIndexPc(id) {
-      return this.peerConnections.findIndex(pc => pc.id === id || pc.savedId === id) ?? {}
+      return this.peerConnections.findIndex(pc => pc.id === id || pc.global_id === id) ?? {}
     },
 
     canSeeToggleVideo(player) {
@@ -1168,21 +1020,34 @@ export default {
     },
 
     canCheckRole({id}) {
-      const {role, isAlive, canCheck} = this.findPc(this.$socket.id) ?? {}
+      const {role, isAlive, canCheck, isVisibleRole = []} = this.findPc(this.$socket.id) ?? {}
 
       return (
         this.$socket.id !== id &&
-        !this.findPc(id).isVisibleRole &&
+        !isVisibleRole.includes(id) &&
         isAlive &&
         ['detective', 'boss'].includes(role) &&
         role === this.gameInfo.type &&
         canCheck
       )
     },
-    checkRole({id}) {
-      this.$set(this.findPc(id), 'isVisibleRole', true)
+    checkRole({global_id}) {
+      const {isVisibleRole, global_id: fromId} = this.findPc(this.$socket.id)
+      isVisibleRole.push(global_id)
+      this.$socket.emit('updatePlayerInfo', {
+        room: this.room,
+        id: fromId,
+        isVisibleRole
+      })
+
       this.$set(this.findPc(this.$socket.id), 'canCheck', false)
-      this.addStatCheckRole({fromId: this.$socket.id, toId: id})
+      this.$socket.emit('updatePlayerInfo', {
+        room: this.room,
+        id: this.$socket.id,
+        canCheck: false
+      })
+
+      this.addStatCheckRole({fromId, toId: global_id})
     },
 
     canNomination({id, isNominate = false, isAlive}) {
@@ -1199,8 +1064,28 @@ export default {
       )
     },
     nomination({id}) {
+      this.$set(this.findPc(id), 'isNominate', true)
+      this.$set(this.findPc(id), 'nominateIndex', this.nominateIndex)
+      this.$socket.emit('updatePlayerInfo', {
+        room: this.room,
+        id,
+        isNominate: true,
+        nominateIndex: this.nominateIndex
+      })
+
+      this.nominateIndex += 1
+      this.$socket.emit('updateRoomInfo', {
+        room: this.room,
+        nominateIndex: this.nominateIndex
+      })
+
       this.$set(this.findPc(this.$socket.id), 'canNominate', false)
-      this.$socket.emit('nomination', {id, room: this.room})
+      this.$socket.emit('updatePlayerInfo', {
+        room: this.room,
+        id: this.$socket.id,
+        canNominate: false
+      })
+
       this.addStatNomination({id})
     },
 
@@ -1215,10 +1100,18 @@ export default {
       )
     },
     voteForExile({id}) {
-      this.$socket.emit('voteForExile', {
-        fromId: this.$socket.id,
-        toId: id,
-        room: this.room
+      const {global_id} = this.findPc(this.$socket.id)
+      this.peerConnections.forEach(pc => {
+        if (pc.id === id) {
+          pc.votePlayers.push(global_id)
+        } else {
+          pc.votePlayers = pc.votePlayers.filter(id => id !== global_id)
+        }
+        this.$socket.emit('updatePlayerInfo', {
+          room: this.room,
+          id: pc.id,
+          votePlayers: pc.votePlayers
+        })
       })
     },
     exile(duration = 5000) {
@@ -1244,14 +1137,9 @@ export default {
           return
         }
 
-        this.isSecondVoting = true
         const maxVotePlayersIds = maxVotePlayers.map(player => player.id)
         this.secondVoting(maxVotePlayersIds)
         this.gameSteps.splice(-1, 0, ...this.gameVoting())
-        this.$socket.emit('secondVoting', {
-          room: this.room,
-          players: maxVotePlayersIds
-        })
       } else {
         const {id, displayName} = maxVotePlayers[0]
         this.gameSteps.splice(-1, 0, ...this.gameLastWord({duration, id, displayName}))
@@ -1262,21 +1150,29 @@ export default {
     },
 
     canVoteForKill({id}) {
-      const {role, isAlive} = this.findPc(this.$socket.id) ?? {}
+      const {role, isAlive, global_id} = this.findPc(this.$socket.id) ?? {}
       const {killPlayers = []} = this.findPc(id) ?? {}
 
       return (
         ['boss', 'mafia'].includes(role) &&
         this.gameInfo.type === 'mafia' &&
         isAlive &&
-        !killPlayers.includes(this.$socket.id)
+        !killPlayers.includes(global_id)
       )
     },
     voteForKill({id}) {
-      this.$socket.emit('voteForKill', {
-        fromId: this.$socket.id,
-        toId: id,
-        room: this.room
+      const {global_id} = this.findPc(this.$socket.id)
+      this.peerConnections.forEach(pc => {
+        if (pc.id === id) {
+          pc.killPlayers.push(global_id)
+        } else {
+          pc.killPlayers = pc.killPlayers.filter(id => id !== global_id)
+        }
+        this.$socket.emit('updatePlayerInfo', {
+          room: this.room,
+          id: pc.id,
+          killPlayers: pc.killPlayers
+        })
       })
     },
     shouldKill() {
@@ -1287,14 +1183,21 @@ export default {
         return result
       })
       if (killPlayers.length && !isHeal && isAlive) {
-        this.$socket.emit('kill', {
-          id,
-          room: this.room
-        })
+        this.killPlayer({id})
         this.toggleVideo({id, room: this.room, state: false})
         this.toggleAudio({id, room: this.room, state: false})
         this.addStatKill({id})
       }
+    },
+    killPlayer({id}) {
+      this.$set(this.findPc(id), 'isAlive', false)
+      this.$set(this.findPc(id), 'isDeadLastRound', true)
+      this.$socket.emit('updatePlayerInfo', {
+        room: this.room,
+        id,
+        isAlive: false,
+        isDeadLastRound: true
+      })
     },
 
     canHeal({id}) {
@@ -1306,9 +1209,17 @@ export default {
       )
     },
     heal({id}) {
-      this.$socket.emit('heal', {
-        toId: id,
-        room: this.room
+      this.peerConnections.forEach(pc => {
+        if (pc.id === id) {
+          this.$set(pc, 'isHeal', true)
+        } else {
+          this.$set(pc, 'isHeal', false)
+        }
+        this.$socket.emit('updatePlayerInfo', {
+          room: this.room,
+          id: pc.id,
+          isHeal: pc.isHeal
+        })
       })
     },
 
@@ -1344,6 +1255,11 @@ export default {
     secondVoting(players) {
       this.isSecondVoting = true
       this.nominateIndex = 1
+      this.$socket.emit('updateRoomInfo', {
+        room: this.room,
+        isSecondVoting: this.isSecondVoting,
+        nominateIndex: this.nominateIndex
+      })
       this.peerConnections.forEach(pc => {
         this.$set(pc, 'isNominate', false)
         this.$set(pc, 'nominateIndex', 0)
@@ -1352,27 +1268,41 @@ export default {
           this.$set(pc, 'isNominate', true)
           this.$set(pc, 'nominateIndex', this.nominateIndex)
           this.nominateIndex += 1
+          this.$socket.emit('updateRoomInfo', {
+            room: this.room,
+            nominateIndex: this.nominateIndex
+          })
         }
+        this.$socket.emit('updatePlayerInfo', {
+          room: this.room,
+          id: pc.id,
+          isNominate: pc.isNominate,
+          nominateIndex: pc.nominateIndex,
+          votePlayers: pc.votePlayers
+        })
       })
     },
     addDuration(e, duration = 10000) {
       this.duration += duration
-      this.$socket.emit('time', {
-        duration: this.duration,
-        room: this.room
-      })
+      this.$socket.emit('updateRoomInfo', {room: this.room, duration: this.duration})
     },
 
     addStat(stat) {
-      this.$socket.emit('addStat', {
-        ...stat,
-        room: this.room
+      const lastEl = this.statistics[this.statistics.length - 1] ?? {}
+      if (lastEl.title === stat.title) {
+        lastEl.players = [...lastEl.players, ...stat.players]
+      } else {
+        this.statistics.push(stat)
+      }
+      this.$socket.emit('updateRoomInfo', {
+        room: this.room,
+        statistics: this.statistics
       })
     },
     addStatPlayers() {
       const players = [
         {
-          from: this.peerConnections.map(pc => pc.id)
+          from: this.peerConnections.map(pc => pc.global_id)
         }
       ]
 
@@ -1423,20 +1353,21 @@ export default {
         iconClass: 'primary--text',
         players: [
           {
-            from: [doctor.id],
+            from: [doctor.global_id],
             to: playerIsHealed ? playerIsHealed.id : null
           }
         ]
       })
     },
     addStatNomination({id}) {
+      const {global_id} = this.findPc(this.$socket.id)
       this.addStat({
         title: 'nomination',
         icon: 'mdi-account-alert',
         iconClass: 'primary--text',
         players: [
           {
-            from: [this.$socket.id],
+            from: [global_id],
             to: id
           }
         ]
@@ -1458,53 +1389,99 @@ export default {
       })
     },
     addStatKill({id}) {
+      const {global_id} = this.findPc(id)
       this.addStat({
         title: 'dead',
         icon: 'mdi-emoticon-dead',
         iconClass: 'error--text',
         players: [
           {
-            from: [id]
+            from: [global_id]
           }
         ]
       })
     },
 
     startGame() {
-      this.$socket.emit('startGame', {room: this.room})
-      this.statistics = []
+      const settings = {
+        statistics: [],
+        gameSteps: [...this.randezvous()],
+        duration: 5000,
+        gameIsStarted: true,
+        isPause: false
+      }
+      this.$socket.emit('startGame', {room: this.room, ...settings})
       this.setGameInfo({text: this.$t('mafia.startingGame'), type: 'start'})
-      this.gameSteps = [...this.randezvous()]
+      this.statistics = settings.statistics
+      this.gameSteps = settings.gameSteps
+      this.duration = settings.duration
+      this.gameIsStarted = settings.gameIsStarted
+      this.isPause = settings.isPause
       this.nextStep(this.gameSteps[0], 5000)
-      this.duration = 5000
-      this.gameIsStarted = true
-      this.isPause = false
       this.makeScreenshots()
       this.addStatPlayers()
     },
     pauseGame() {
       this.isPause = !this.isPause
+      this.$socket.emit('updateRoomInfo', {room: this.room, isPause: this.isPause})
     },
     endGame() {
       this.peerConnections.forEach(({id, room}) => {
         this.toggleVideo({id, room, state: true})
         this.toggleAudio({id, room, state: true})
       })
-      this.$socket.emit('endGame', {room: this.room})
+      this.resetGameNight()
+      this.resetGameDay()
+      this.peerConnections.forEach(pc => {
+        this.$set(pc, 'isAlive', true)
+        this.$set(pc, 'isVisibleRole', [])
+      })
+
+      this.duration = 0
+      this.isSecondVoting = false
+      this.gameIsStarted = false
+      this.$socket.emit('updateRoomInfo', {
+        room: this.room,
+        duration: this.duration,
+        isSecondVoting: this.isSecondVoting,
+        gameIsStarted: this.gameIsStarted
+      })
+
       clearInterval(this.timer)
     },
     setGameInfo(info) {
       this.gameInfo = info
       this.$socket.emit('setGameInfo', {
-        ...info,
+        gameInfo: info,
         room: this.room
       })
     },
     makeScreenshots() {
-      this.$socket.emit('makeScreenshots', {room: this.room})
+      const canvas = document.querySelector('canvas')
+      const videos = document.querySelectorAll('video')
+
+      videos.forEach(video => {
+        canvas.width = video.videoWidth
+        canvas.height = video.videoHeight
+        canvas.getContext('2d').drawImage(video, 0, 0)
+
+        const src = canvas.toDataURL('image/png')
+        const player = this.findPc(video.dataset.id)
+        this.$set(player, 'src', src)
+      })
+
+      canvas.width = 0
+      canvas.height = 0
+      this.peerConnections.forEach(pc => {
+        this.$socket.emit('updatePlayerInfo', {
+          room: this.room,
+          id: pc.id,
+          src: pc.src
+        })
+      })
     },
-    activePlayer({id, savedId, role}) {
-      return role && [id, savedId].includes(this.gameInfo.active)
+    activePlayer({id, global_id, role}) {
+      return role && [id, global_id].includes(this.gameInfo.active)
     },
 
     // gameSteps
@@ -1534,7 +1511,7 @@ export default {
       })
     },
     setGameNight() {
-      this.$socket.emit('resetGameDay', {room: this.room})
+      this.resetGameDay()
       this.gameSteps.push(...this.gameNight())
     },
     setGameDay() {
@@ -1864,14 +1841,11 @@ export default {
             info: {
               text: this.$t('mafia.prepareToTheNight')
             },
-            emit: {
-              name: 'kill',
-              options: {
-                id,
-                room: this.room
-              }
-            },
             methods: [
+              {
+                f: 'killPlayer',
+                args: [{id}]
+              },
               {
                 f: 'addStatKill',
                 args: [{id}]
@@ -1890,11 +1864,56 @@ export default {
       ]
     },
     meeting({duration = 180000} = {}) {
-      this.$socket.emit('resetGameNight', {room: this.room})
+      this.resetGameNight()
       this.duration = duration
       this.setGameInfo({text: this.$t('mafia.meeting'), type: 'meeting'})
     },
 
+    resetGameNight() {
+      this.peerConnections.forEach(pc => {
+        if (pc.isHeal) {
+          this.$set(pc, 'isHealedLastRound', true)
+        } else if (pc.isHealedLastRound && !pc.isHeal) {
+          this.$set(pc, 'isHealedLastRound', false)
+        }
+        this.$set(pc, 'isHeal', false)
+        this.$set(pc, 'killPlayers', [])
+        this.$set(pc, 'canCheck', true)
+        this.$socket.emit('updatePlayerInfo', {
+          room: this.room,
+          id: pc.id,
+          isHealedLastRound: pc.isHealedLastRound,
+          isHeal: pc.isHeal,
+          killPlayers: pc.killPlayers,
+          canCheck: pc.canCheck
+        })
+      })
+    },
+    resetGameDay() {
+      this.peerConnections.forEach(pc => {
+        this.$set(pc, 'isNominate', false)
+        this.$set(pc, 'nominateIndex', 0)
+        this.$set(pc, 'votePlayers', [])
+        this.$set(pc, 'isDeadLastRound', false)
+        this.$set(pc, 'canNominate', true)
+        this.$socket.emit('updatePlayerInfo', {
+          room: this.room,
+          id: pc.id,
+          isNominate: pc.isNominate,
+          nominateIndex: pc.nominateIndex,
+          votePlayers: pc.votePlayers,
+          isDeadLastRound: pc.isDeadLastRound,
+          canNominate: pc.canNominate
+        })
+      })
+      this.nominateIndex = 1
+      this.isSecondVoting = false
+      this.$socket.emit('updateRoomInfo', {
+        room: this.room,
+        nominateIndex: this.nominateIndex,
+        isSecondVoting: this.isSecondVoting
+      })
+    },
     shouldEndGame() {
       const mafia = this.peerConnections.filter(
         player =>
@@ -1920,9 +1939,13 @@ export default {
         winner: getWinner()
       }
     },
+
     formatRole(player) {
-      const {role} = this.findPc(this.$socket.id)
-      if ((player.isVisibleRole && player.role) || (player.id === this.$socket.id && player.role)) {
+      const {role, isVisibleRole} = this.findPc(this.$socket.id)
+      if (
+        (isVisibleRole.includes(player.global_id) && player.role) ||
+        (player.id === this.$socket.id && player.role)
+      ) {
         if (!this.gameIsStarted || player.id === this.$socket.id) {
           return player.role
         }
@@ -1966,10 +1989,11 @@ export default {
     updateSettings() {
       this.dialogSettings.value = false
       localStorage.setItem('displayName', this.dialogSettings.displayName)
-      this.$socket.emit('updateSettings', {
-        ...this.dialogSettings,
+      const {value, speech, ...settings} = this.dialogSettings
+      this.$socket.emit('updatePlayerInfo', {
+        room: this.room,
         id: this.$socket.id,
-        room: this.room
+        ...settings
       })
       this.speechSpeak({text: this.dialogSettings.speech})
     },
@@ -1996,10 +2020,7 @@ export default {
       this.timer = setInterval(() => {
         if (!this.isPause) {
           this.duration = Math.max(0, this.duration - 1000)
-          this.$socket.emit('time', {
-            duration: this.duration,
-            room: this.room
-          })
+          this.$socket.emit('updateRoomInfo', {room: this.room, duration: this.duration})
 
           if (this.duration <= 0) {
             this.executeNextStep({method, options})
