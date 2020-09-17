@@ -61,7 +61,10 @@
     "doctorSleep": "Доктор засыпает",
     "mafiaWin": "Мафия победила",
     "citizenWin": "Жители победили",
-    "exit": "Выйти из комнаты"
+    "exit": "Выйти из комнаты",
+    "enterPassword": "Введите пароль",
+    "checkPassword": "Проверить",
+    "password": "Пароль"
   },
   "messages": {
     "confirm": "Подтвердите операцию",

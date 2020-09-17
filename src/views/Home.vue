@@ -7,15 +7,16 @@
           :label="`${$t('main.name')}*`"
           v-model="name"
           required
+          @keypress.enter="createRoom"
           color="accent_color"
         ></v-text-field>
-        <!-- <v-text-field
+        <v-text-field
           dark
           :label="$t('main.password')"
           v-model="password"
           required
           color="accent_color"
-        ></v-text-field> -->
+        ></v-text-field>
         <v-btn color="accent_color" class="px-4" dark @click="createRoom" :disabled="!name">{{
           $t('main.createRoom')
         }}</v-btn>
@@ -103,7 +104,7 @@ export default {
         const isInitiator = peerConnections.find(pc => pc.isInitiator)
         return {
           name: room.name || room.room,
-          players: peerConnections.length,
+          players: room.players.length,
           isInitiator: isInitiator.displayName || isInitiator.id,
           room: room.room
         }
@@ -121,6 +122,8 @@ export default {
 
   methods: {
     createRoom() {
+      if (!this.name) return
+
       const shortUrl = () => {
         return ('000000' + ((Math.random() * Math.pow(36, 6)) << 0).toString(36)).slice(-6)
       }

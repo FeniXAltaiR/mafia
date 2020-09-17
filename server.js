@@ -106,11 +106,12 @@ sock.on('connect', socket => {
   }
   const addSocketToConnections = () => {
     const socket_id = socket.id.replace('/sock#', '')
-    // const {query = {}} = io.sockets.sockets?.[socket_id]?.handshake ?? {}
-    const {query = {}} = socket?.handshake ?? {}
+    const {query = {}} = io.sockets.sockets?.[socket_id]?.handshake ?? {}
+    // const {query = {}} = socket?.handshake ?? {}
 
     if (query.global_id === 'null') {
       query.global_id = socket.id
+      socket.handshake.query.global_id = socket.id
     }
 
     connections[socket.id] = {
@@ -128,7 +129,7 @@ sock.on('connect', socket => {
   }
 
   addSocketToConnections()
-  socket.emit('test', connections)
+  // socket.emit('test', connections)
 
   socket.on('disconnecting', () => {
     const rooms = Object.keys(socket.rooms)
@@ -168,6 +169,7 @@ sock.on('connect', socket => {
     const addRoomToConnections = room => {
       connections[room] = {
         ...(connections[room] ?? {}),
+        room,
         nominateIndex: 1,
         duration: 0,
         gameSteps: [],
@@ -206,6 +208,20 @@ sock.on('connect', socket => {
         socket.to(room).emit('join', newPlayer)
       }
     }
+    const existPlayer = room => {
+      const {global_id} = socket.handshake.query
+      const {peerConnections = {}} = connections?.[room] ?? {}
+      const player = Object.values(peerConnections).find(pc => pc.global_id === global_id)
+
+      return player
+    }
+    const checkPassword = () => {
+      return (
+        connections?.[room]?.password &&
+        connections?.[room]?.password !== settings.password &&
+        Object.keys(connections?.[room]?.peerConnections ?? {}).length !== 0
+      )
+    }
 
     if (players.length >= 20) {
       socket.emit('message', {msg: 'Room is fool'})
@@ -214,6 +230,13 @@ sock.on('connect', socket => {
         msg:
           'There is player in this room with the same id. Try to come in this room from another browser'
       })
+    } else if (connections?.[room]?.gameIsStarted && !existPlayer(settings.room)) {
+      socket.emit('message', {
+        msg: 'The game has already started'
+      })
+    } else if (checkPassword()) {
+      const {password} = connections[room]
+      socket.emit('checkPassword', {password})
     } else {
       socket.join(room)
       if (!players.length) {
@@ -243,7 +266,12 @@ sock.on('connect', socket => {
   })
 
   socket.on('getRooms', () => {
-    const rooms = getRooms().map(room => connections[room])
+    const rooms = getRooms()
+      .filter(room => !connections[room].gameIsStarted)
+      .map(room => ({
+        ...connections[room],
+        players: playersInRoom(room)
+      }))
     socket.emit('getRooms', rooms)
   })
 

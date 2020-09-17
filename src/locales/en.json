@@ -61,7 +61,10 @@
     "doctorSleep": "The doctor is falling asleep",
     "mafiaWin": "Mafia has won",
     "citizenWin": "Citizens have won",
-    "exit": "Exit from room"
+    "exit": "Exit from room",
+    "enterPassword": "Enter password",
+    "checkPassword": "Check",
+    "password": "Password"
   },
   "messages": {
     "confirm": "Confirm operation",

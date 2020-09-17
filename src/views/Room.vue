@@ -573,6 +573,39 @@
         </template>
       </v-card>
     </v-dialog>
+    <v-dialog v-model="dialogPassword.value" persistent max-width="600px" dark>
+      <v-card>
+        <v-card-title class="justify-space-between">
+          <span class="headline">{{ $t('mafia.enterPassword') }}</span>
+          <v-btn icon small color="main_color" @click="dialogPassword.value = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-card-title>
+        <v-card-text>
+          <v-container>
+            <v-row>
+              <v-col cols="12" md="12">
+                <v-text-field
+                  type="password"
+                  autofocus
+                  :label="$t('mafia.password')"
+                  v-model="dialogPassword.password"
+                  required
+                  @keypress.enter="checkPassword"
+                  color="accent_color"
+                ></v-text-field>
+              </v-col>
+            </v-row>
+          </v-container>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn color="accent_color" text @click="checkPassword">{{
+            $t('mafia.checkPassword')
+          }}</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
     <canvas class="d-none"></canvas>
   </div>
 </template>
@@ -651,6 +684,12 @@ export default {
     },
     dialogStat: {
       value: false
+    },
+    dialogPassword: {
+      value: false,
+      password: '',
+      orig_password: '',
+      stream: null
     }
   }),
   computed: {
@@ -688,9 +727,11 @@ export default {
     disconnectPlayer({id}) {
       this.isPause = true
       const player = this.findPc(id)
-      player.stream.getTracks().forEach(track => {
-        track.stop()
-      })
+      if (player.stream) {
+        player.stream.getTracks().forEach(track => {
+          track.stop()
+        })
+      }
       // this.$delete(player, 'stream')
       // this.$delete(player, 'pc')
     },
@@ -751,6 +792,13 @@ export default {
     message({msg}) {
       alert(msg)
       this.$router.push('/')
+    },
+    checkPassword({password}) {
+      this.dialogPassword = {
+        value: true,
+        password: '',
+        orig_password: password
+      }
     },
     join(settings) {
       // console.log('JOIN')
@@ -890,6 +938,7 @@ export default {
         canNominate: true,
         isInitiator: false,
         isVisibleRole: [],
+        password: '',
         global_id: localStorage.getItem('id')
       }
       this.peerConnections.push({
@@ -979,6 +1028,22 @@ export default {
     },
     errorHandler(e) {
       console.error(e)
+    },
+
+    checkPassword() {
+      const {password, orig_password} = this.dialogPassword
+      if (password === orig_password) {
+        const {stream, ...player} = this.findPc(this.$socket.id)
+        this.$socket.emit('join', {...player, password})
+      } else {
+        alert('Password is incorrect')
+        this.peerConnections = []
+      }
+      this.dialogPassword = {
+        value: false,
+        password: '',
+        orig_password: ''
+      }
     },
 
     setSpeechSettings() {
