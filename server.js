@@ -167,6 +167,7 @@ sock.on('connect', socket => {
     }
     const addRoomToConnections = room => {
       connections[room] = {
+        ...(connections[room] ?? {}),
         nominateIndex: 1,
         duration: 0,
         gameSteps: [],
@@ -235,6 +236,15 @@ sock.on('connect', socket => {
 
   socket.on('iceCandidate', message => {
     socket.to(message.room).emit('iceCandidate', message)
+  })
+
+  socket.on('createRoom', settings => {
+    connections[settings.room] = settings
+  })
+
+  socket.on('getRooms', () => {
+    const rooms = getRooms().map(room => connections[room])
+    socket.emit('getRooms', rooms)
   })
 
   socket.on('updatePlayerInfo', settings => {

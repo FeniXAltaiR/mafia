@@ -2,7 +2,9 @@
   <div>
     <v-row class="px-5 justify-space-between">
       <v-col md="2">
-        <v-row class="align-center"> </v-row>
+        <v-row class="align-start">
+          <h3 class="white--text">{{ name }}</h3>
+        </v-row>
       </v-col>
       <v-col md="4">
         <v-row class="justify-center align-center">
@@ -466,16 +468,16 @@
                   v-model="dialogSettings.displayName"
                   required
                   @keypress.enter="updateSettings"
-                  color="main_color"
+                  color="accent_color"
                 ></v-text-field>
                 <v-text-field
                   v-if="findPc($socket.id).isInitiator"
                   autofocus
-                  label="speech*"
+                  label="speech"
                   v-model="dialogSettings.speech"
                   required
                   @keypress.enter="updateSettings"
-                  color="main_color"
+                  color="accent_color"
                 ></v-text-field>
               </v-col>
             </v-row>
@@ -626,6 +628,8 @@ export default {
     timer: null,
 
     // room options
+    name: '',
+    password: '',
     nominateIndex: 1,
     duration: 0,
     gameSteps: [],
@@ -684,8 +688,11 @@ export default {
     disconnectPlayer({id}) {
       this.isPause = true
       const player = this.findPc(id)
-      this.$delete(player, 'stream')
-      this.$delete(player, 'pc')
+      player.stream.getTracks().forEach(track => {
+        track.stop()
+      })
+      // this.$delete(player, 'stream')
+      // this.$delete(player, 'pc')
     },
     test(msg) {
       console.dir(msg)
@@ -729,6 +736,7 @@ export default {
       }
     },
     updateRoomInfo(settings) {
+      console.log(settings)
       // console.log('ROOM_INFO', settings)
       Object.entries(settings).forEach(([key, value]) => {
         this[key] = value
@@ -952,20 +960,22 @@ export default {
     checkPeerDisconnect(event, peerUuid) {
       const state = this.findPc(peerUuid)?.pc?.iceConnectionState
       console.log(`connection with peer ${peerUuid} ${state}`)
-      // if (['failed', 'closed', 'disconnected'].includes(state)) {
-      //   console.log('DELETE PEER', peerUuid)
-      //   this.isPause = true
-      // if (this.findPc(peerUuid).isInitiator) {
-      //   const player = this.peerConnections
-      //     .filter(pc => pc.isAlive && !pc.isInitiator)
-      //     .sort((pcA, pcB) => (pcA.isAlive ? 1 : -1))
-      //     .find(pc => !pc.isInitiator)
-      //   this.newInitiator({id: player.id})
-      // }
-      // this.$delete(this.findPc(peerUuid), 'stream')
-      // this.$delete(this.findPc(peerUuid), 'pc')
-      // this.peerConnections = this.peerConnections.filter(pc => pc.id !== peerUuid)
-      // }
+      if (['failed', 'closed', 'disconnected'].includes(state)) {
+        this.$delete(this.findPc(peerUuid), 'stream')
+        this.$delete(this.findPc(peerUuid), 'pc')
+        //   console.log('DELETE PEER', peerUuid)
+        //   this.isPause = true
+        // if (this.findPc(peerUuid).isInitiator) {
+        //   const player = this.peerConnections
+        //     .filter(pc => pc.isAlive && !pc.isInitiator)
+        //     .sort((pcA, pcB) => (pcA.isAlive ? 1 : -1))
+        //     .find(pc => !pc.isInitiator)
+        //   this.newInitiator({id: player.id})
+        // }
+        // this.$delete(this.findPc(peerUuid), 'stream')
+        // this.$delete(this.findPc(peerUuid), 'pc')
+        // this.peerConnections = this.peerConnections.filter(pc => pc.id !== peerUuid)
+      }
     },
     errorHandler(e) {
       console.error(e)
@@ -983,7 +993,8 @@ export default {
     },
 
     findPc(id) {
-      return this.peerConnections.find(pc => pc.id === id || pc.global_id === id) ?? {}
+      const player = this.peerConnections.find(pc => pc.id === id || pc.global_id === id) ?? {}
+      return player
     },
     findIndexPc(id) {
       return this.peerConnections.findIndex(pc => pc.id === id || pc.global_id === id) ?? {}
@@ -1019,12 +1030,12 @@ export default {
       }
     },
 
-    canCheckRole({id}) {
+    canCheckRole({id, global_id}) {
       const {role, isAlive, canCheck, isVisibleRole = []} = this.findPc(this.$socket.id) ?? {}
 
       return (
         this.$socket.id !== id &&
-        !isVisibleRole.includes(id) &&
+        !isVisibleRole.includes(global_id) &&
         isAlive &&
         ['detective', 'boss'].includes(role) &&
         role === this.gameInfo.type &&
@@ -1033,17 +1044,13 @@ export default {
     },
     checkRole({global_id}) {
       const {isVisibleRole, global_id: fromId} = this.findPc(this.$socket.id)
-      isVisibleRole.push(global_id)
-      this.$socket.emit('updatePlayerInfo', {
-        room: this.room,
-        id: fromId,
-        isVisibleRole
-      })
 
+      isVisibleRole.push(global_id)
       this.$set(this.findPc(this.$socket.id), 'canCheck', false)
       this.$socket.emit('updatePlayerInfo', {
         room: this.room,
         id: this.$socket.id,
+        isVisibleRole,
         canCheck: false
       })
 
@@ -1090,10 +1097,11 @@ export default {
     },
 
     canVoteForExile({id, isAlive, votePlayers, isNominate}) {
+      const {global_id} = this.findPc(this.$socket.id)
       return (
         this.$socket.id !== id &&
         this.gameInfo.type === 'exile' &&
-        !votePlayers.includes(this.$socket.id) &&
+        !votePlayers.includes(global_id) &&
         this.findPc(this.$socket.id).isAlive &&
         isAlive &&
         isNominate
@@ -1434,7 +1442,13 @@ export default {
       this.resetGameDay()
       this.peerConnections.forEach(pc => {
         this.$set(pc, 'isAlive', true)
-        this.$set(pc, 'isVisibleRole', [])
+        this.$set(pc, 'isVisibleRole', [...this.peerConnections.map(pc => pc.global_id)])
+        this.$socket.emit('updatePlayerInfo', {
+          room: this.room,
+          id: pc.id,
+          isAlive: pc.isAlive,
+          isVisibleRole: pc.isVisibleRole
+        })
       })
 
       this.duration = 0

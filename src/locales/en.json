@@ -1,6 +1,13 @@
 {
   "main": {
-    "createRoom": "Create room"
+    "createRoom": "Create room",
+    "goToRoom": "Sign in",
+    "name": "Name",
+    "players": "Players",
+    "isInitiator": "Leader",
+    "password": "Password",
+    "rooms": "Rooms",
+    "search": "Search"
   },
   "mafia": {
     "play": "Play",
@@ -57,6 +64,7 @@
     "exit": "Exit from room"
   },
   "messages": {
-    "confirm": "Confirm operation"
+    "confirm": "Confirm operation",
+    "noRooms": "There are no rooms available"
   }
 }
