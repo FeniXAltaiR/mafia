@@ -65,7 +65,14 @@
     "exit": "Exit from room",
     "enterPassword": "Enter password",
     "checkPassword": "Check",
-    "password": "Password"
+    "password": "Password",
+    "personal": "Personal",
+    "room": "Room",
+    "other": "Other",
+    "nickname": "Nickname",
+    "nameOfTheRoom": "Name of the room",
+    "limitOfPlayers": "Limit of players",
+    "speech": "Voice message"
   },
   "messages": {
     "confirm": "Confirm operation",

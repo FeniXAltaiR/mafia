@@ -65,7 +65,14 @@
     "exit": "Выйти из комнаты",
     "enterPassword": "Введите пароль",
     "checkPassword": "Проверить",
-    "password": "Пароль"
+    "password": "Пароль",
+    "personal": "Личные",
+    "room": "Комната",
+    "other": "Остальное",
+    "nickname": "Имя",
+    "nameOfTheRoom": "Название",
+    "limitOfPlayers": "Лимит игроков",
+    "speech": "Голосовое сообщение"
   },
   "messages": {
     "confirm": "Подтвердите операцию",

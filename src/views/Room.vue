@@ -190,6 +190,7 @@
                   :controls="false"
                   :style="getVideoStyle"
                   :data-id="player.id"
+                  style="object-fit: cover"
                   class="d-flex align-center"
                 ></video>
               </div>
@@ -456,72 +457,113 @@
             <v-icon>mdi-close</v-icon>
           </v-btn>
         </v-card-title>
-        <v-card-text>
-          <v-container>
-            <v-row>
-              <v-col cols="12" md="12">
-                <v-text-field
-                  autofocus
-                  label="Nickname*"
-                  v-model="dialogSettings.displayName"
-                  required
-                  @keypress.enter="updateSettings"
-                  color="accent_color"
-                ></v-text-field>
-                <v-text-field
-                  v-if="findPc($socket.id).isInitiator"
-                  label="speech"
-                  v-model="dialogSettings.speech"
-                  required
-                  @keypress.enter="updateSettings"
-                  color="accent_color"
-                ></v-text-field>
-              </v-col>
-            </v-row>
-          </v-container>
+        <v-card-text class="pa-0">
+          <v-tabs background-color="transparent" class="elevation-2 px-2" dark>
+            <v-tabs-slider color="accent_color"></v-tabs-slider>
+
+            <v-tab>
+              <span>{{ $t(`mafia.personal`) }}</span>
+            </v-tab>
+            <v-tab v-if="findPc($socket.id).isInitiator">
+              <span>{{ $t(`mafia.room`) }}</span>
+            </v-tab>
+            <v-tab v-if="findPc($socket.id).isInitiator">
+              <span>{{ $t(`mafia.other`) }}</span>
+            </v-tab>
+
+            <v-tab-item dark>
+              <v-card flat tile dark>
+                <v-card-text>
+                  <v-text-field
+                    autofocus
+                    :label="$t('mafia.nickname')"
+                    v-model="dialogSettings.displayName"
+                    required
+                    @keypress.enter="updateSettings"
+                    color="accent_color"
+                  ></v-text-field>
+                </v-card-text>
+
+                <v-divider class="main_color"></v-divider>
+
+                <v-card-actions>
+                  <v-spacer></v-spacer>
+                  <v-btn color="accent_color" text @click="updateSettings">{{
+                    $t('mafia.save')
+                  }}</v-btn>
+                </v-card-actions>
+              </v-card>
+            </v-tab-item>
+
+            <v-tab-item dark v-if="findPc($socket.id).isInitiator">
+              <v-card flat tile dark>
+                <v-card-text>
+                  <v-text-field
+                    v-if="findPc($socket.id).isInitiator"
+                    :label="$t('mafia.nameOfTheRoom')"
+                    v-model="dialogSettings.name"
+                    required
+                    @keypress.enter="updateSettings"
+                    color="accent_color"
+                  ></v-text-field>
+                  <v-text-field
+                    v-if="findPc($socket.id).isInitiator"
+                    type="number"
+                    :max="20"
+                    :min="1"
+                    :label="$t('mafia.limitOfPlayers')"
+                    v-model="dialogSettings.limit"
+                    required
+                    @keypress.enter="updateSettings"
+                    color="accent_color"
+                  ></v-text-field>
+                  <v-text-field
+                    v-if="findPc($socket.id).isInitiator"
+                    type="password"
+                    :label="$t('mafia.password')"
+                    v-model="dialogSettings.password"
+                    required
+                    @keypress.enter="updateSettings"
+                    color="accent_color"
+                  ></v-text-field>
+                </v-card-text>
+
+                <v-divider class="main_color"></v-divider>
+
+                <v-card-actions>
+                  <v-spacer></v-spacer>
+                  <v-btn color="accent_color" text @click="updateSettings">{{
+                    $t('mafia.save')
+                  }}</v-btn>
+                </v-card-actions>
+              </v-card>
+            </v-tab-item>
+
+            <v-tab-item dark v-if="findPc($socket.id).isInitiator">
+              <v-card flat tile dark>
+                <v-card-text>
+                  <v-text-field
+                    v-if="findPc($socket.id).isInitiator"
+                    :label="$t('mafia.speech')"
+                    v-model="dialogSettings.speech"
+                    required
+                    @keypress.enter="updateSettings"
+                    color="accent_color"
+                  ></v-text-field>
+                </v-card-text>
+
+                <v-divider class="main_color"></v-divider>
+
+                <v-card-actions>
+                  <v-spacer></v-spacer>
+                  <v-btn color="accent_color" text @click="updateSettings">{{
+                    $t('mafia.save')
+                  }}</v-btn>
+                </v-card-actions>
+              </v-card>
+            </v-tab-item>
+          </v-tabs>
         </v-card-text>
-        <v-divider class="main_color"></v-divider>
-        <v-card-text>
-          <v-container>
-            <v-row>
-              <v-col cols="12" md="12">
-                <v-text-field
-                  v-if="findPc($socket.id).isInitiator"
-                  label="Name of the room"
-                  v-model="dialogSettings.name"
-                  required
-                  @keypress.enter="updateSettings"
-                  color="accent_color"
-                ></v-text-field>
-                <v-text-field
-                  v-if="findPc($socket.id).isInitiator"
-                  type="number"
-                  :max="20"
-                  :min="1"
-                  label="Limit of players"
-                  v-model="dialogSettings.limit"
-                  required
-                  @keypress.enter="updateSettings"
-                  color="accent_color"
-                ></v-text-field>
-                <v-text-field
-                  v-if="findPc($socket.id).isInitiator"
-                  type="password"
-                  label="Password"
-                  v-model="dialogSettings.password"
-                  required
-                  @keypress.enter="updateSettings"
-                  color="accent_color"
-                ></v-text-field>
-              </v-col>
-            </v-row>
-          </v-container>
-        </v-card-text>
-        <v-divider class="main_color"></v-divider>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn color="accent_color" text @click="updateSettings">{{ $t('mafia.save') }}</v-btn>
-        </v-card-actions>
       </v-card>
     </v-dialog>
     <v-dialog v-model="dialogAlert.value" persistent max-width="600px" dark>
@@ -669,7 +711,7 @@ export default {
         // {url: 'stun:stun1.l.google.com:19302'},
         // {url: 'stun:stun2.l.google.com:19302'},
         // {url: 'stun:stun3.l.google.com:19302'},
-        {url: 'stun:stun4.l.google.com:19302'},
+        {url: 'stun:stun4.l.google.com:19302'}
         // {url: 'stun:stunserver.org'},
         // {url: 'stun:stun.softjoys.com'},
         // {url: 'stun:stun.voiparound.com'},
@@ -683,11 +725,16 @@ export default {
         //   credential: 'JZEOEt2V3Qb0y27GRntt2u2PAYA=',
         //   username: '28224511:1379330808'
         // },
-        {
-          url: 'turn:192.158.29.39:3478?transport=tcp',
-          credential: 'JZEOEt2V3Qb0y27GRntt2u2PAYA=',
-          username: '28224511:1379330808'
-        }
+        // {
+        //   url: 'turn:192.158.29.39:3478?transport=tcp',
+        //   credential: 'JZEOEt2V3Qb0y27GRntt2u2PAYA=',
+        //   username: '28224511:1379330808'
+        // }
+        // {
+        //   credential: 'testtest',
+        //   url: 'media16.playmafia.pro:3478',
+        //   username: 'ptp1ptp2'
+        // }
       ]
     },
     room: null,
@@ -2126,6 +2173,7 @@ export default {
       })
       if (speech) {
         this.speechSpeak({text: speech})
+        this.speech = null
       }
     },
     openDialogStat() {
@@ -2204,4 +2252,7 @@ export default {
 
 video::-webkit-media-controls
   display:none !important
+
+.v-window__container
+  background: #1e1e1e !important
 </style>
