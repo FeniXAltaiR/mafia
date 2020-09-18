@@ -6,125 +6,141 @@
           <h3 class="white--text">{{ name }}</h3>
         </v-row>
       </v-col>
-      <v-col md="4">
-        <v-row class="justify-center align-center">
-          <h3
-            class="mr-2 white--text"
-            :class="{
-              'primary--text': gameInfo.text === $t('mafia.citizenWin'),
-              'error--text': gameInfo.text === $t('mafia.mafiaWin')
-            }"
+      <v-col md="4" class="grey darken-4 elevation-2 rounded-pill pa-0 d-flex align-center">
+        <v-row class="justify-center align-center fill-height">
+          <v-col
+            md="5"
+            class="d-flex justify-end align-center align-self-stretch"
+            style="border-right: solid 2px #1e1e1e"
           >
-            {{ gameInfo.text }}
-          </h3>
-          <h3 class="mr-2 white--text">{{ getTime }}</h3>
-          <v-tooltip open-delay="250" bottom>
-            <template v-slot:activator="{on}">
-              <v-btn
-                icon
-                small
-                @click="pauseGame"
-                class="white--text"
-                v-on="on"
-                v-show="gameIsStarted && findPc($socket.id).isInitiator"
-              >
-                <v-icon>mdi-{{ isPause ? 'play' : 'pause' }}</v-icon>
-              </v-btn>
-            </template>
-            <span>{{ isPause ? $t('mafia.play') : $t('mafia.pause') }}</span>
-          </v-tooltip>
-          <v-tooltip open-delay="250" bottom>
-            <template v-slot:activator="{on}">
-              <v-btn
-                icon
-                small
-                @click="startGame"
-                class="white--text"
-                v-on="on"
-                v-show="!gameIsStarted && findPc($socket.id).isInitiator"
-              >
-                <v-icon>mdi-play</v-icon>
-              </v-btn>
-            </template>
-            <span>{{ $t('mafia.startGame') }}</span>
-          </v-tooltip>
-          <v-tooltip open-delay="250" bottom>
-            <template v-slot:activator="{on}">
-              <v-btn
-                icon
-                small
-                @click="addDuration"
-                class="white--text"
-                v-on="on"
-                v-show="gameIsStarted && findPc($socket.id).isInitiator"
-              >
-                <v-icon>mdi-plus</v-icon>
-              </v-btn>
-            </template>
-            <span>{{ $t('mafia.addDuration') }}</span>
-          </v-tooltip>
-          <v-tooltip open-delay="250" bottom>
-            <template v-slot:activator="{on}">
-              <v-btn
-                icon
-                small
-                @click="goToNextStep"
-                class="white--text"
-                v-on="on"
-                v-show="gameIsStarted && findPc($socket.id).isInitiator"
-              >
-                <v-icon>mdi-skip-next</v-icon>
-              </v-btn>
-            </template>
-            <span>{{ $t('mafia.goToNextStep') }}</span>
-          </v-tooltip>
-          <v-tooltip open-delay="250" bottom>
-            <template v-slot:activator="{on}">
-              <v-btn
-                v-show="gameIsStarted && findPc($socket.id).isInitiator"
-                icon
-                small
-                @click="openDialogAlert({method: endGame})"
-                class="white--text"
-                v-on="on"
-              >
-                <v-icon>mdi-exit-run</v-icon>
-              </v-btn>
-            </template>
-            <span>{{ $t('mafia.endGame') }}</span>
-          </v-tooltip>
-          <v-tooltip open-delay="250" bottom>
-            <template v-slot:activator="{on}">
-              <v-btn
-                icon
-                small
-                @click="openDialogStat"
-                class="white--text"
-                v-on="on"
-                v-show="!gameIsStarted && statistics.length"
-              >
-                <v-icon>mdi-view-list</v-icon>
-              </v-btn>
-            </template>
-            <span>{{ $t('mafia.statistics') }}</span>
-          </v-tooltip>
-          <v-menu absolute>
-            <template v-slot:activator="{on}">
-              <v-slide-x-transition>
-                <v-btn icon v-on="on" class="white--text" v-show="!findPc($socket.id).stream">
-                  <v-icon>mdi-lan-connect</v-icon>
+            <h3
+              class="white--text"
+              :class="{
+                'accent_color--text': gameInfo.text === $t('mafia.citizenWin'),
+                'main_color--text': gameInfo.text === $t('mafia.mafiaWin')
+              }"
+            >
+              {{ gameInfo.text }}
+            </h3>
+          </v-col>
+
+          <v-col md="2" class="d-flex justify-center align-center">
+            <h3 class="white--text mx-2">{{ getTime }}</h3>
+          </v-col>
+
+          <v-col
+            md="5"
+            class="d-flex align-center align-self-stretch"
+            style="border-left: solid 2px #1e1e1e"
+          >
+            <v-tooltip open-delay="250" bottom>
+              <template v-slot:activator="{on}">
+                <v-btn
+                  icon
+                  small
+                  @click="pauseGame"
+                  class="white--text"
+                  v-on="on"
+                  v-show="gameIsStarted && findPc($socket.id).isInitiator"
+                >
+                  <v-icon>mdi-{{ isPause ? 'play' : 'pause' }}</v-icon>
                 </v-btn>
-              </v-slide-x-transition>
-            </template>
-            <v-list dense dark>
-              <v-list-item @click="init('getUserMedia')">
-                <v-list-item-title>{{ $t('mafia.webcam') }}</v-list-item-title>
-              </v-list-item>
-              <v-list-item @click="init('getDisplayMedia')">
-                <v-list-item-title>{{ $t('mafia.screen') }}</v-list-item-title>
-              </v-list-item>
-            </v-list>
-          </v-menu>
+              </template>
+              <span>{{ isPause ? $t('mafia.play') : $t('mafia.pause') }}</span>
+            </v-tooltip>
+            <v-tooltip open-delay="250" bottom>
+              <template v-slot:activator="{on}">
+                <v-btn
+                  icon
+                  small
+                  @click="startGame"
+                  class="white--text"
+                  v-on="on"
+                  v-show="!gameIsStarted && findPc($socket.id).isInitiator"
+                >
+                  <v-icon>mdi-play</v-icon>
+                </v-btn>
+              </template>
+              <span>{{ $t('mafia.startGame') }}</span>
+            </v-tooltip>
+            <v-tooltip open-delay="250" bottom>
+              <template v-slot:activator="{on}">
+                <v-btn
+                  icon
+                  small
+                  @click="addDuration"
+                  class="white--text"
+                  v-on="on"
+                  v-show="gameIsStarted && findPc($socket.id).isInitiator"
+                >
+                  <v-icon>mdi-plus</v-icon>
+                </v-btn>
+              </template>
+              <span>{{ $t('mafia.addDuration') }}</span>
+            </v-tooltip>
+            <v-tooltip open-delay="250" bottom>
+              <template v-slot:activator="{on}">
+                <v-btn
+                  icon
+                  small
+                  @click="goToNextStep"
+                  class="white--text"
+                  v-on="on"
+                  v-show="gameIsStarted && findPc($socket.id).isInitiator"
+                >
+                  <v-icon>mdi-skip-next</v-icon>
+                </v-btn>
+              </template>
+              <span>{{ $t('mafia.goToNextStep') }}</span>
+            </v-tooltip>
+            <v-tooltip open-delay="250" bottom>
+              <template v-slot:activator="{on}">
+                <v-btn
+                  v-show="gameIsStarted && findPc($socket.id).isInitiator"
+                  icon
+                  small
+                  @click="openDialogAlert({method: endGame})"
+                  class="white--text"
+                  v-on="on"
+                >
+                  <v-icon>mdi-exit-run</v-icon>
+                </v-btn>
+              </template>
+              <span>{{ $t('mafia.endGame') }}</span>
+            </v-tooltip>
+            <v-tooltip open-delay="250" bottom>
+              <template v-slot:activator="{on}">
+                <v-btn
+                  icon
+                  small
+                  @click="openDialogStat"
+                  class="white--text"
+                  v-on="on"
+                  v-show="!gameIsStarted && statistics.length"
+                >
+                  <v-icon>mdi-view-list</v-icon>
+                </v-btn>
+              </template>
+              <span>{{ $t('mafia.statistics') }}</span>
+            </v-tooltip>
+            <v-menu absolute>
+              <template v-slot:activator="{on}">
+                <v-slide-x-transition>
+                  <v-btn icon v-on="on" class="white--text" v-show="!findPc($socket.id).stream">
+                    <v-icon>mdi-lan-connect</v-icon>
+                  </v-btn>
+                </v-slide-x-transition>
+              </template>
+              <v-list dense dark>
+                <v-list-item @click="init('getUserMedia')">
+                  <v-list-item-title>{{ $t('mafia.webcam') }}</v-list-item-title>
+                </v-list-item>
+                <v-list-item @click="init('getDisplayMedia')">
+                  <v-list-item-title>{{ $t('mafia.screen') }}</v-list-item-title>
+                </v-list-item>
+              </v-list>
+            </v-menu>
+          </v-col>
         </v-row>
       </v-col>
       <v-col md="2">
