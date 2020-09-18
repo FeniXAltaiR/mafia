@@ -171,12 +171,13 @@
         md="3"
         sm="6"
         xs="12"
+        class="align-self-stretch"
         v-for="player in getPlayerStreams"
         :key="player.id"
         style="position: relative;"
         @dblclick="getFullscreen(player.id)"
       >
-        <template v-if="player.stream">
+        <template>
           <v-row class="justify-center px-2">
             <v-badge
               color="accent_color"
@@ -199,6 +200,7 @@
                 <v-hover v-slot:default="{hover}" open-delay="200">
                   <div>
                     <video
+                      v-if="player.stream"
                       :srcObject.prop="player.stream"
                       autoplay
                       :controls="false"
@@ -206,7 +208,22 @@
                       :data-id="player.id"
                     ></video>
                     <div
-                      v-if="!player.isVideo"
+                      v-if="!player.stream"
+                      class="d-flex px-2 pb-3 pt-1 align-center justify-center white--text black"
+                      style="height: 100%; width: 100%; top: 0; border-radius: 8px;"
+                    >
+                      <h1>{{ findPc(player.id).displayName }}</h1>
+                      <v-btn
+                        icon
+                        class="error--text ml-2"
+                        @click="openDialogAlert({method: banPlayer, args: [player]})"
+                        :disabled="!findPc($socket.id).isInitiator"
+                      >
+                        <v-icon>mdi-lan-disconnect</v-icon>
+                      </v-btn>
+                    </div>
+                    <div
+                      v-else-if="!player.isVideo"
                       class="d-flex px-2 pb-3 pt-1 align-center justify-center white--text"
                       style="height: 100%; width: 100%; position: absolute; top: 0; border-radius: 8px;"
                     >
@@ -430,11 +447,11 @@
             </v-badge>
           </v-row>
         </template>
-        <template v-else>
-          <v-row class="justify-center px-2">
+        <!-- <template v-else>
+          <v-row class="justify-center px-2 fill-height">
             <div
-              class="d-flex px-2 pb-3 pt-1 align-center justify-center white--text"
-              style="height: 100%; width: 100%; position: absolute; top: 0; border-radius: 8px;"
+              class="d-flex px-2 pb-3 pt-1 align-center justify-center white--text black"
+              style="height: 100%; width: 100%; top: 0; border-radius: 8px;"
             >
               <h1>{{ findPc(player.id).displayName }}</h1>
               <v-btn
@@ -447,7 +464,7 @@
               </v-btn>
             </div>
           </v-row>
-        </template>
+        </template> -->
       </v-col>
     </draggable>
     <v-dialog v-model="dialogSettings.value" persistent max-width="600px" dark>
@@ -472,7 +489,6 @@
                 ></v-text-field>
                 <v-text-field
                   v-if="findPc($socket.id).isInitiator"
-                  autofocus
                   label="speech"
                   v-model="dialogSettings.speech"
                   required
@@ -483,6 +499,42 @@
             </v-row>
           </v-container>
         </v-card-text>
+        <v-divider class="main_color"></v-divider>
+        <v-card-text>
+          <v-container>
+            <v-row>
+              <v-col cols="12" md="12">
+                <v-text-field
+                  v-if="findPc($socket.id).isInitiator"
+                  label="Name of the room"
+                  v-model="dialogSettings.name"
+                  required
+                  @keypress.enter="updateSettings"
+                  color="accent_color"
+                ></v-text-field>
+                <v-text-field
+                  v-if="findPc($socket.id).isInitiator"
+                  type="number"
+                  label="Limit of players"
+                  v-model="dialogSettings.limit"
+                  required
+                  @keypress.enter="updateSettings"
+                  color="accent_color"
+                ></v-text-field>
+                <v-text-field
+                  v-if="findPc($socket.id).isInitiator"
+                  type="password"
+                  label="Password"
+                  v-model="dialogSettings.password"
+                  required
+                  @keypress.enter="updateSettings"
+                  color="accent_color"
+                ></v-text-field>
+              </v-col>
+            </v-row>
+          </v-container>
+        </v-card-text>
+        <v-divider class="main_color"></v-divider>
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn color="accent_color" text @click="updateSettings">{{ $t('mafia.save') }}</v-btn>
@@ -501,7 +553,7 @@
         </v-alert>
 
         <div class="pb-2">
-          <v-divider class="accent_color" style="opacity: 0.22"></v-divider>
+          <v-divider class="main_color"></v-divider>
         </div>
 
         <v-card-actions class="justify-end">
@@ -518,7 +570,7 @@
           <v-icon>mdi-close</v-icon>
         </v-btn>
       </v-row>
-      <v-divider class="accent_color"></v-divider>
+      <v-divider class="main_color"></v-divider>
       <v-card
         class="px-2 pt-2 grey darken-4 white--text"
         flat
@@ -569,7 +621,7 @@
               </v-row>
             </v-col>
           </v-row>
-          <v-divider class="accent_color"></v-divider>
+          <v-divider class="main_color"></v-divider>
         </template>
       </v-card>
     </v-dialog>
@@ -663,6 +715,7 @@ export default {
     // room options
     name: '',
     password: '',
+    limit: 10,
     nominateIndex: 1,
     duration: 0,
     gameSteps: [],
@@ -2061,20 +2114,36 @@ export default {
       }
     },
     openDialogSettings() {
-      const player = this.findPc(this.$socket.id)
-      this.dialogSettings.value = true
-      this.dialogSettings.displayName = player.displayName
+      const {displayName} = this.findPc(this.$socket.id)
+      this.dialogSettings = {
+        value: true,
+        displayName,
+        name: this.name,
+        limit: this.limit,
+        password: this.password
+      }
     },
     updateSettings() {
       this.dialogSettings.value = false
-      localStorage.setItem('displayName', this.dialogSettings.displayName)
-      const {value, speech, ...settings} = this.dialogSettings
+      const {value, speech, displayName, name, limit, password} = this.dialogSettings
+      localStorage.setItem('displayName', displayName)
       this.$socket.emit('updatePlayerInfo', {
         room: this.room,
         id: this.$socket.id,
-        ...settings
+        displayName
       })
-      this.speechSpeak({text: this.dialogSettings.speech})
+      this.name = name
+      this.limit = limit
+      this.password = password
+      this.$socket.emit('updateRoomInfo', {
+        room: this.room,
+        name,
+        limit,
+        password
+      })
+      if (speech) {
+        this.speechSpeak({text: speech})
+      }
     },
     openDialogStat() {
       this.dialogStat.value = true

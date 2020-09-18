@@ -170,6 +170,7 @@ sock.on('connect', socket => {
       connections[room] = {
         ...(connections[room] ?? {}),
         room,
+        limit: 10,
         nominateIndex: 1,
         duration: 0,
         gameSteps: [],
@@ -223,7 +224,7 @@ sock.on('connect', socket => {
       )
     }
 
-    if (players.length >= 20) {
+    if (players.length >= connections?.[room]?.limit) {
       socket.emit('message', {msg: 'Room is fool'})
     } else if (existPlayerInRoom()) {
       socket.emit('message', {
