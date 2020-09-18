@@ -1,5 +1,5 @@
 <template>
-  <v-app style="background: black">
+  <v-app style="background: #212121">
     <!-- <v-navigation-drawer app color="#0079BF" v-model="drawer">
     </v-navigation-drawer> -->
 
@@ -48,7 +48,35 @@
       </v-container>
     </v-main>
 
-    <!-- <v-footer app></v-footer> -->
+    <v-slide-y-reverse-transition>
+      <v-footer app class="grey darken-4" v-if="footer">
+        <v-spacer></v-spacer>
+        <v-btn dark class="accent_color" @click="dialogContacts.value = true">
+          <span>{{ $t('main.contacts') }}</span>
+        </v-btn>
+      </v-footer>
+    </v-slide-y-reverse-transition>
+
+    <v-dialog v-model="dialogContacts.value" persistent max-width="600px" dark>
+      <v-card>
+        <v-card-title class="justify-space-between">
+          <span class="headline">{{ $t('main.contacts') }}</span>
+          <v-btn icon small color="main_color" @click="dialogContacts.value = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-card-title>
+        <v-divider class="main_color mb-4"></v-divider>
+        <v-card-text>
+          <p class="mb-2">Email: <span class="text-subtitle-2">gameoveran@yandex.ru</span></p>
+          <p class="mb-0">
+            Github:
+            <a href="https://github.com/FeniXAltaiR" target="_blank" class="text-subtitle-2"
+              >FeniXAltaiR</a
+            >
+          </p>
+        </v-card-text>
+      </v-card>
+    </v-dialog>
   </v-app>
 </template>
 
@@ -58,7 +86,12 @@ import {mapGetters} from 'vuex'
 export default {
   data: () => ({
     drawer: false,
-    bar: true
+    bar: true,
+    footer: false,
+
+    dialogContacts: {
+      value: false
+    }
   }),
   computed: {
     ...mapGetters(['userData'])
@@ -89,8 +122,10 @@ export default {
       const {room} = this.$route.params
       if (room) {
         this.bar = false
+        this.footer = false
       } else {
         this.bar = true
+        this.footer = true
       }
     },
     toggleDrawer() {

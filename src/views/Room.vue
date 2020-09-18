@@ -178,293 +178,274 @@
         @dblclick="getFullscreen(player.id)"
       >
         <template>
-          <v-row class="justify-center px-2">
-            <v-badge
-              color="accent_color"
-              right
-              bottom
-              :content="player.nominateIndex"
-              :value="player.nominateIndex"
+          <v-row class="justify-center px-1 fill-height">
+            <div
+              style="position: relative; width: 100%; height: 100%"
+              class="d-flex align-center align-self-stretch"
             >
-              <v-badge color="error" :value="canSeeBadge(player)">
-                <template v-slot:badge>
-                  <v-tooltip left>
-                    <template v-slot:activator="{on}">
-                      <span class="pointer" v-on="on">{{ badgeContent(player) }}</span>
-                    </template>
-                    <div v-for="id in getListPlayers(player)" :key="id">
-                      <span>{{ findPc(id).displayName }}</span>
-                    </div>
-                  </v-tooltip>
-                </template>
-                <v-hover v-slot:default="{hover}" open-delay="200">
-                  <div>
-                    <video
-                      v-if="player.stream"
-                      :srcObject.prop="player.stream"
-                      autoplay
-                      :controls="false"
-                      :style="getVideoStyle"
-                      :data-id="player.id"
-                    ></video>
-                    <div
-                      v-if="!player.stream"
-                      class="d-flex px-2 pb-3 pt-1 align-center justify-center white--text black"
-                      style="height: 100%; width: 100%; top: 0; border-radius: 8px;"
-                    >
-                      <h1>{{ findPc(player.id).displayName }}</h1>
-                      <v-btn
-                        icon
-                        class="error--text ml-2"
-                        @click="openDialogAlert({method: banPlayer, args: [player]})"
-                        :disabled="!findPc($socket.id).isInitiator"
-                      >
-                        <v-icon>mdi-lan-disconnect</v-icon>
-                      </v-btn>
-                    </div>
-                    <div
-                      v-else-if="!player.isVideo"
-                      class="d-flex px-2 pb-3 pt-1 align-center justify-center white--text"
-                      style="height: 100%; width: 100%; position: absolute; top: 0; border-radius: 8px;"
-                    >
-                      <h1>{{ findPc(player.id).displayName }}</h1>
-                    </div>
-                    <div
-                      class="d-flex px-1 py-2 flex-column justify-space-between white--text"
-                      style="height: 100%; width: 100%; position: absolute; top: 0; border-radius: 8px;"
-                    >
-                      <v-row class="justify-space-between">
-                        <v-col md="5" class="py-0">
-                          <div>
-                            <v-menu absolute>
-                              <template v-slot:activator="{on}">
-                                <v-slide-x-transition>
-                                  <v-btn
-                                    icon
-                                    v-on="on"
-                                    class="white--text grey darken-4 mb-1"
-                                    v-if="
-                                      hover &&
-                                        findPc($socket.id).isInitiator &&
-                                        player.id !== $socket.id
-                                    "
-                                  >
-                                    <v-icon>mdi-dots-vertical</v-icon>
-                                  </v-btn>
-                                </v-slide-x-transition>
-                              </template>
-                              <v-list dense dark>
-                                <!-- <v-list-item
-                                  @click="openDialogAlert({method: newInitiator, args: [player]})"
-                                >
-                                  <v-list-item-title>{{
-                                    $t('mafia.newInitiator')
-                                  }}</v-list-item-title>
-                                </v-list-item> -->
-                                <v-list-item
-                                  @click="openDialogAlert({method: banPlayer, args: [player]})"
-                                >
-                                  <v-list-item-title>{{ $t('mafia.banPlayer') }}</v-list-item-title>
-                                </v-list-item>
-                              </v-list>
-                            </v-menu>
-                          </div>
-                          <div>
+              <div v-if="player.stream">
+                <video
+                  :srcObject.prop="player.stream"
+                  autoplay
+                  :controls="false"
+                  :style="getVideoStyle"
+                  :data-id="player.id"
+                  class="d-flex align-center"
+                ></video>
+              </div>
+              <div
+                v-if="!player.stream"
+                class="d-flex px-2 pb-3 pt-1 align-center justify-center white--text black"
+                style="height: 100%; width: 100%; top: 0; position: absolute; border-radius: 8px;"
+              >
+                <h1>{{ findPc(player.id).displayName }}</h1>
+              </div>
+              <div
+                v-else-if="!player.isVideo"
+                class="d-flex px-2 pb-3 pt-1 align-center justify-center white--text"
+                style="height: 100%; width: 100%; position: absolute; top: 0; border-radius: 8px;"
+              >
+                <h1>{{ findPc(player.id).displayName }}</h1>
+              </div>
+              <v-hover v-slot:default="{hover}" open-delay="200">
+                <div
+                  class="d-flex px-2 py-2 flex-column justify-space-between white--text"
+                  style="position: absolute; top: 0; height: 100%; width: 100%; border-radius: 8px;"
+                >
+                  <v-row class="justify-space-between">
+                    <v-col md="5" class="py-0">
+                      <div>
+                        <v-menu absolute>
+                          <template v-slot:activator="{on}">
                             <v-slide-x-transition>
                               <v-btn
                                 icon
+                                v-on="on"
                                 class="white--text grey darken-4 mb-1"
-                                @click="toggleVideo(player)"
-                                v-if="hover && canSeeToggleVideo(player)"
-                              >
-                                <v-icon v-if="player.isVideo">mdi-video</v-icon>
-                                <v-icon v-else class="error--text">mdi-video-off</v-icon>
-                              </v-btn>
-                            </v-slide-x-transition>
-                          </div>
-                          <div>
-                            <v-slide-x-transition>
-                              <v-btn
-                                icon
-                                class="white--text grey darken-4 mb-1"
-                                @click="toggleAudio(player)"
-                                v-if="hover && canSeeToggleAudio(player)"
-                              >
-                                <v-icon v-if="player.isAudio">mdi-volume-high</v-icon>
-                                <v-icon v-else class="error--text">mdi-volume-off</v-icon>
-                              </v-btn>
-                            </v-slide-x-transition>
-                          </div>
-                        </v-col>
-                        <v-col md="2" class="py-0">
-                          <v-row class="justify-center">
-                            <v-slide-y-transition>
-                              <v-icon
                                 v-if="
                                   hover &&
-                                    !findPc($socket.id).isInitiator &&
-                                    !player.isVideo &&
+                                    findPc($socket.id).isInitiator &&
                                     player.id !== $socket.id
                                 "
-                                class="error--text"
-                                >mdi-video-off</v-icon
                               >
-                            </v-slide-y-transition>
-                            <v-slide-y-transition>
-                              <v-icon
-                                v-if="
-                                  hover &&
-                                    !findPc($socket.id).isInitiator &&
-                                    !player.isAudio &&
-                                    player.id !== $socket.id
-                                "
-                                class="error--text"
-                                >mdi-volume-off</v-icon
-                              >
-                            </v-slide-y-transition>
-                          </v-row>
-                        </v-col>
-                        <v-col md="5" class="py-1 pr-4 d-flex justify-end">
-                          <v-slide-x-reverse-transition>
-                            <v-btn
-                              v-if="canCheckRole(player)"
-                              icon
-                              class="warning--text grey darken-4"
-                              @click="checkRole(player)"
+                                <v-icon>mdi-dots-vertical</v-icon>
+                              </v-btn>
+                            </v-slide-x-transition>
+                          </template>
+                          <v-list dense dark>
+                            <!-- <v-list-item
+                              @click="openDialogAlert({method: newInitiator, args: [player]})"
                             >
-                              <v-icon>mdi-magnify</v-icon>
-                            </v-btn>
-                          </v-slide-x-reverse-transition>
-                          <v-slide-x-reverse-transition>
-                            <v-btn
-                              v-if="canVoteForKill(player)"
-                              icon
-                              @click="voteForKill(player)"
-                              class="error--text grey darken-4"
+                              <v-list-item-title>{{
+                                $t('mafia.newInitiator')
+                              }}</v-list-item-title>
+                            </v-list-item> -->
+                            <v-list-item
+                              @click="openDialogAlert({method: banPlayer, args: [player]})"
                             >
-                              <v-icon>mdi-axe</v-icon>
-                            </v-btn>
-                          </v-slide-x-reverse-transition>
-                          <v-slide-x-reverse-transition>
-                            <v-btn
-                              v-if="canHeal(player)"
-                              icon
-                              @click="heal(player)"
-                              class="primary--text grey darken-4"
-                            >
-                              <v-icon>mdi-bottle-tonic-plus</v-icon>
-                            </v-btn>
-                          </v-slide-x-reverse-transition>
-                          <v-slide-x-reverse-transition>
-                            <v-btn
-                              v-if="canNomination(player)"
-                              icon
-                              @click="nomination(player)"
-                              class="primary--text grey darken-4"
-                            >
-                              <v-icon>mdi-account-alert</v-icon>
-                            </v-btn>
-                          </v-slide-x-reverse-transition>
-                          <v-slide-x-reverse-transition>
-                            <v-btn
-                              v-if="canVoteForExile(player)"
-                              icon
-                              @click="voteForExile(player)"
-                              class="primary--text grey darken-4"
-                            >
-                              <v-icon>mdi-account-check</v-icon>
-                            </v-btn>
-                          </v-slide-x-reverse-transition>
-                        </v-col>
-                      </v-row>
-                      <div class="d-flex justify-space-between align-end">
-                        <div class="d-flex align-end">
-                          <div class="bgtext bgtext--left px-2 py-2 elevation-4 grey darken-4">
-                            <span class="font-weight-black"
-                              >{{ findIndexPc(player.id) + 1 }} |
-                            </span>
-                            <span>{{ findPc(player.id).displayName }}</span>
-                            <span v-if="findPc(player.id).isInitiator">
-                              ({{ $t('mafia.leader') }})</span
-                            >
-                          </div>
-                          <v-slide-y-reverse-transition>
-                            <v-icon v-if="activePlayer(player)" class="primary--text ml-2"
-                              >mdi-chat-alert</v-icon
-                            >
-                          </v-slide-y-reverse-transition>
-                        </div>
-                        <div class="d-flex align-end">
-                          <v-slide-y-reverse-transition>
-                            <v-icon v-if="player.isDeadLastRound" class="error--text ml-2"
-                              >mdi-emoticon-dead</v-icon
-                            >
-                          </v-slide-y-reverse-transition>
-                          <v-slide-x-transition>
-                            <div class="bgtext bgtext--right px-2 py-1 elevation-4 accent_color">
-                              <!-- <span class="mr-2">{{ $t(`mafia.${formatRole(player)}`) }}</span> -->
-                              <v-tooltip open-delay="250" top>
-                                <template v-slot:activator="{on}">
-                                  <div v-on="on">
-                                    <v-icon
-                                      v-if="formatRole(player) === 'mafia'"
-                                      class="black--text"
-                                      >mdi-alien</v-icon
-                                    >
-                                    <v-icon
-                                      v-else-if="formatRole(player) === 'boss'"
-                                      class="black--text"
-                                      >mdi-alpha-w-circle</v-icon
-                                    >
-                                    <v-icon
-                                      v-else-if="formatRole(player) === 'citizen'"
-                                      class="main_color--text"
-                                      >mdi-baby-face</v-icon
-                                    >
-                                    <v-icon
-                                      v-else-if="formatRole(player) === 'detective'"
-                                      class="main_color--text"
-                                      >mdi-binoculars</v-icon
-                                    >
-                                    <v-icon
-                                      v-else-if="formatRole(player) === 'doctor'"
-                                      class="main_color--text"
-                                      >mdi-medical-bag</v-icon
-                                    >
-                                    <v-icon v-else>mdi-artstation</v-icon>
-                                  </div>
-                                </template>
-                                <span>{{ $t(`mafia.${formatRole(player)}`) }}</span>
-                              </v-tooltip>
-                            </div>
-                          </v-slide-x-transition>
-                        </div>
+                              <v-list-item-title>{{ $t('mafia.banPlayer') }}</v-list-item-title>
+                            </v-list-item>
+                          </v-list>
+                        </v-menu>
                       </div>
+                      <div>
+                        <v-slide-x-transition>
+                          <v-btn
+                            icon
+                            class="white--text grey darken-4 mb-1"
+                            @click="toggleVideo(player)"
+                            v-if="hover && canSeeToggleVideo(player)"
+                          >
+                            <v-icon v-if="player.isVideo">mdi-video</v-icon>
+                            <v-icon v-else class="error--text">mdi-video-off</v-icon>
+                          </v-btn>
+                        </v-slide-x-transition>
+                      </div>
+                      <div>
+                        <v-slide-x-transition>
+                          <v-btn
+                            icon
+                            class="white--text grey darken-4 mb-1"
+                            @click="toggleAudio(player)"
+                            v-if="hover && canSeeToggleAudio(player)"
+                          >
+                            <v-icon v-if="player.isAudio">mdi-volume-high</v-icon>
+                            <v-icon v-else class="error--text">mdi-volume-off</v-icon>
+                          </v-btn>
+                        </v-slide-x-transition>
+                      </div>
+                    </v-col>
+                    <v-col md="2" class="py-1">
+                      <v-row class="justify-center">
+                        <v-slide-y-transition>
+                          <v-icon
+                            v-if="
+                              hover &&
+                                !findPc($socket.id).isInitiator &&
+                                !player.isVideo &&
+                                player.id !== $socket.id
+                            "
+                            class="error--text"
+                            >mdi-video-off</v-icon
+                          >
+                        </v-slide-y-transition>
+                        <v-slide-y-transition>
+                          <v-icon
+                            v-if="
+                              hover &&
+                                !findPc($socket.id).isInitiator &&
+                                !player.isAudio &&
+                                player.id !== $socket.id
+                            "
+                            class="error--text"
+                            >mdi-volume-off</v-icon
+                          >
+                        </v-slide-y-transition>
+                        <v-slide-y-transition>
+                          <v-icon
+                            v-if="hover && !player.stream && player.id !== $socket.id"
+                            class="error--text"
+                            >mdi-lan-disconnect</v-icon
+                          >
+                        </v-slide-y-transition>
+                      </v-row>
+                    </v-col>
+                    <v-col md="5" class="py-1 pr-4 d-flex justify-end">
+                      <v-slide-x-reverse-transition>
+                        <v-btn
+                          v-if="canCheckRole(player)"
+                          icon
+                          class="warning--text grey darken-4"
+                          @click="checkRole(player)"
+                        >
+                          <v-icon>mdi-magnify</v-icon>
+                        </v-btn>
+                      </v-slide-x-reverse-transition>
+                      <v-slide-x-reverse-transition>
+                        <v-btn
+                          v-if="canVoteForKill(player)"
+                          icon
+                          @click="voteForKill(player)"
+                          class="error--text grey darken-4"
+                        >
+                          <v-icon>mdi-axe</v-icon>
+                        </v-btn>
+                      </v-slide-x-reverse-transition>
+                      <v-slide-x-reverse-transition>
+                        <v-btn
+                          v-if="canHeal(player)"
+                          icon
+                          @click="heal(player)"
+                          class="primary--text grey darken-4"
+                        >
+                          <v-icon>mdi-bottle-tonic-plus</v-icon>
+                        </v-btn>
+                      </v-slide-x-reverse-transition>
+                      <v-slide-x-reverse-transition>
+                        <v-btn
+                          v-if="canNomination(player)"
+                          icon
+                          @click="nomination(player)"
+                          class="primary--text grey darken-4"
+                        >
+                          <v-icon>mdi-account-alert</v-icon>
+                        </v-btn>
+                      </v-slide-x-reverse-transition>
+                      <v-slide-x-reverse-transition>
+                        <v-btn
+                          v-if="canVoteForExile(player)"
+                          icon
+                          @click="voteForExile(player)"
+                          class="primary--text grey darken-4"
+                        >
+                          <v-icon>mdi-account-check</v-icon>
+                        </v-btn>
+                      </v-slide-x-reverse-transition>
+                    </v-col>
+                  </v-row>
+                  <div class="d-flex justify-space-between align-end">
+                    <div class="d-flex align-end">
+                      <v-badge
+                        color="accent_color"
+                        right
+                        :content="player.nominateIndex"
+                        :value="player.nominateIndex"
+                      >
+                        <div class="bgtext bgtext--left px-2 py-2 elevation-4 grey darken-4">
+                          <span class="font-weight-black">{{ findIndexPc(player.id) + 1 }} | </span>
+                          <span>{{ findPc(player.id).displayName }}</span>
+                          <span v-if="findPc(player.id).isInitiator">
+                            ({{ $t('mafia.leader') }})</span
+                          >
+                        </div>
+                      </v-badge>
+                      <v-slide-y-reverse-transition>
+                        <v-icon v-if="activePlayer(player)" class="primary--text ml-2"
+                          >mdi-chat-alert</v-icon
+                        >
+                      </v-slide-y-reverse-transition>
+                    </div>
+                    <div class="d-flex align-end">
+                      <v-slide-y-reverse-transition>
+                        <v-icon v-if="player.isDeadLastRound" class="error--text ml-2"
+                          >mdi-emoticon-dead</v-icon
+                        >
+                      </v-slide-y-reverse-transition>
+                      <v-slide-x-transition>
+                        <v-badge color="error" left :value="canSeeBadge(player)">
+                          <template v-slot:badge>
+                            <v-tooltip left>
+                              <template v-slot:activator="{on}">
+                                <span class="pointer" v-on="on">{{ badgeContent(player) }}</span>
+                              </template>
+                              <div v-for="id in getListPlayers(player)" :key="id">
+                                <span>{{ findPc(id).displayName }}</span>
+                              </div>
+                            </v-tooltip>
+                          </template>
+                          <div class="bgtext bgtext--right px-2 py-1 elevation-4 accent_color">
+                            <!-- <span class="mr-2">{{ $t(`mafia.${formatRole(player)}`) }}</span> -->
+                            <v-tooltip open-delay="250" top>
+                              <template v-slot:activator="{on}">
+                                <div v-on="on">
+                                  <v-icon v-if="formatRole(player) === 'mafia'" class="black--text"
+                                    >mdi-alien</v-icon
+                                  >
+                                  <v-icon
+                                    v-else-if="formatRole(player) === 'boss'"
+                                    class="black--text"
+                                    >mdi-alpha-w-circle</v-icon
+                                  >
+                                  <v-icon
+                                    v-else-if="formatRole(player) === 'citizen'"
+                                    class="main_color--text"
+                                    >mdi-baby-face</v-icon
+                                  >
+                                  <v-icon
+                                    v-else-if="formatRole(player) === 'detective'"
+                                    class="main_color--text"
+                                    >mdi-binoculars</v-icon
+                                  >
+                                  <v-icon
+                                    v-else-if="formatRole(player) === 'doctor'"
+                                    class="main_color--text"
+                                    >mdi-medical-bag</v-icon
+                                  >
+                                  <v-icon v-else>mdi-artstation</v-icon>
+                                </div>
+                              </template>
+                              <span>{{ $t(`mafia.${formatRole(player)}`) }}</span>
+                            </v-tooltip>
+                          </div>
+                        </v-badge>
+                      </v-slide-x-transition>
                     </div>
                   </div>
-                </v-hover>
-              </v-badge>
-            </v-badge>
-          </v-row>
-        </template>
-        <!-- <template v-else>
-          <v-row class="justify-center px-2 fill-height">
-            <div
-              class="d-flex px-2 pb-3 pt-1 align-center justify-center white--text black"
-              style="height: 100%; width: 100%; top: 0; border-radius: 8px;"
-            >
-              <h1>{{ findPc(player.id).displayName }}</h1>
-              <v-btn
-                icon
-                class="error--text ml-2"
-                @click="openDialogAlert({method: banPlayer, args: [player]})"
-                :disabled="!findPc($socket.id).isInitiator"
-              >
-                <v-icon>mdi-lan-disconnect</v-icon>
-              </v-btn>
+                </div>
+              </v-hover>
             </div>
           </v-row>
-        </template> -->
+        </template>
       </v-col>
     </draggable>
     <v-dialog v-model="dialogSettings.value" persistent max-width="600px" dark>
@@ -515,6 +496,8 @@
                 <v-text-field
                   v-if="findPc($socket.id).isInitiator"
                   type="number"
+                  :max="20"
+                  :min="1"
                   label="Limit of players"
                   v-model="dialogSettings.limit"
                   required
@@ -1120,7 +1103,7 @@ export default {
 
     canSeeToggleVideo(player) {
       return (
-        player.stream.getVideoTracks()[0] &&
+        player?.stream?.getVideoTracks()[0] &&
         (player.id === this.$socket.id || this.findPc(this.$socket.id).isInitiator)
       )
     },
@@ -1135,7 +1118,7 @@ export default {
 
     canSeeToggleAudio(player) {
       return (
-        player.stream.getAudioTracks()[0] &&
+        player?.stream?.getAudioTracks()[0] &&
         (player.id === this.$socket.id || this.findPc(this.$socket.id).isInitiator)
       )
     },

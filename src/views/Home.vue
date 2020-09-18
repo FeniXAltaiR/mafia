@@ -1,22 +1,25 @@
 <template>
   <v-row class="px-2 justify-center">
     <v-col md="2">
-      <v-card dark class="px-2 pb-4 pt-2 d-flex flex-column justify-center">
-        <v-text-field
-          dark
-          :label="`${$t('main.name')}*`"
-          v-model="name"
-          required
-          @keypress.enter="createRoom"
-          color="accent_color"
-        ></v-text-field>
-        <v-text-field
-          dark
-          :label="$t('main.password')"
-          v-model="password"
-          required
-          color="accent_color"
-        ></v-text-field>
+      <v-card dark class="px-4 pb-4 pt-2 d-flex flex-column justify-center">
+        <v-form autocomplete="off">
+          <v-text-field
+            dark
+            :label="`${$t('main.name')}*`"
+            v-model="name"
+            @keypress.enter="createRoom"
+            color="accent_color"
+            autocomplete="false"
+          ></v-text-field>
+          <v-text-field
+            dark
+            type="password"
+            :label="$t('main.password')"
+            v-model="password"
+            color="accent_color"
+            autocomplete="false"
+          ></v-text-field>
+        </v-form>
         <v-btn color="accent_color" class="px-4" dark @click="createRoom" :disabled="!name">{{
           $t('main.createRoom')
         }}</v-btn>
@@ -147,3 +150,18 @@ export default {
   }
 }
 </script>
+
+<style lang="sass">
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus
+  -webkit-text-fill-color: white
+  background-color: transparent
+  transition: background-color 5000s ease-in-out 0s
+</style>

@@ -7,7 +7,8 @@
     "isInitiator": "Leader",
     "password": "Password",
     "rooms": "Rooms",
-    "search": "Search"
+    "search": "Search",
+    "contacts": "Contacts"
   },
   "mafia": {
     "play": "Play",
