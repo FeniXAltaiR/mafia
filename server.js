@@ -138,6 +138,30 @@ sock.on('connect', socket => {
       socket.to(room).emit('disconnectPlayer', {
         id: socket.id
       })
+
+      const peerConnections = connections?.[room]?.peerConnections
+      if (peerConnections) {
+        const player = peerConnections?.[socket.id]
+        if (player.isInitiator) {
+          const playerInitiator = Object.keys(peerConnections).find(
+            id => !peerConnections[id].isInitiator && peerConnections[id].isAlive
+          )
+
+          peerConnections[playerInitiator].isInitiator = true
+          socket.to(room).emit('updatePlayerInfo', {
+            id: playerInitiator,
+            isInitiator: peerConnections[playerInitiator].isInitiator
+          })
+
+          player.isInitiator = false
+          socket.to(room).emit('updatePlayerInfo', {
+            id: player.id,
+            isInitiator: player.isInitiator
+          })
+
+          socket.to(playerInitiator).emit('newInitiator')
+        }
+      }
     })
 
     delete connections[socket.id]
@@ -346,9 +370,7 @@ sock.on('connect', socket => {
   })
 
   socket.on('newInitiator', ({id, room}) => {
-    sock.to(room).emit('newInitiator', {
-      id
-    })
+    sock.to(id).emit('newInitiator')
   })
 
   socket.on('speechSpeak', ({room, text}) => {
@@ -357,9 +379,5 @@ sock.on('connect', socket => {
 
   socket.on('banPlayer', ({id, room}) => {
     sock.to(room).emit('banPlayer', {id})
-  })
-
-  socket.on('bye', function() {
-    console.log('received bye')
   })
 })

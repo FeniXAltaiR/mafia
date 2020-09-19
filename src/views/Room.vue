@@ -1,12 +1,12 @@
 <template>
   <div>
-    <v-row class="px-5 justify-space-between">
+    <v-row class="px-5 justify-space-between mb-2">
       <v-col md="2">
         <v-row class="align-start">
           <h3 class="white--text">{{ name }}</h3>
         </v-row>
       </v-col>
-      <v-col md="4" class="grey darken-4 elevation-2 rounded-pill pa-0 d-flex align-center">
+      <v-col md="5" class="grey darken-4 elevation-2 rounded-pill pa-0 d-flex align-center">
         <v-row class="justify-center align-center fill-height">
           <v-col
             md="5"
@@ -250,13 +250,11 @@
                             </v-slide-x-transition>
                           </template>
                           <v-list dense dark>
-                            <!-- <v-list-item
+                            <v-list-item
                               @click="openDialogAlert({method: newInitiator, args: [player]})"
                             >
-                              <v-list-item-title>{{
-                                $t('mafia.newInitiator')
-                              }}</v-list-item-title>
-                            </v-list-item> -->
+                              <v-list-item-title>{{ $t('mafia.newInitiator') }}</v-list-item-title>
+                            </v-list-item>
                             <v-list-item
                               @click="openDialogAlert({method: banPlayer, args: [player]})"
                             >
@@ -323,6 +321,16 @@
                             v-if="hover && !player.stream && player.id !== $socket.id"
                             class="error--text"
                             >mdi-lan-disconnect</v-icon
+                          >
+                        </v-slide-y-transition>
+                        <v-slide-y-transition>
+                          <v-icon v-if="player.isDeadLastRound" class="main_color--text"
+                            >mdi-emoticon-dead</v-icon
+                          >
+                        </v-slide-y-transition>
+                        <v-slide-y-transition>
+                          <v-icon v-if="activePlayer(player)" class="accent_color--text"
+                            >mdi-chat-alert</v-icon
                           >
                         </v-slide-y-transition>
                       </v-row>
@@ -396,18 +404,8 @@
                           >
                         </div>
                       </v-badge>
-                      <v-slide-y-reverse-transition>
-                        <v-icon v-if="activePlayer(player)" class="primary--text ml-2"
-                          >mdi-chat-alert</v-icon
-                        >
-                      </v-slide-y-reverse-transition>
                     </div>
                     <div class="d-flex align-end">
-                      <v-slide-y-reverse-transition>
-                        <v-icon v-if="player.isDeadLastRound" class="error--text ml-2"
-                          >mdi-emoticon-dead</v-icon
-                        >
-                      </v-slide-y-reverse-transition>
                       <v-slide-x-transition>
                         <v-badge color="error" left :value="canSeeBadge(player)">
                           <template v-slot:badge>
@@ -819,6 +817,7 @@ export default {
     disconnect() {
       console.log('disconnect')
       this.peerConnections = []
+      clearInterval(this.timer)
     },
     disconnecting() {
       console.log('disconnecting')
@@ -855,15 +854,9 @@ export default {
       this.$set(this.findPc(id), 'isVisibleRole', [])
       this.$set(this.findPc(id), 'role', role)
     },
-    newInitiator({id}) {
-      this.peerConnections.forEach(pc => {
-        this.$set(pc, 'isInitiator', pc.id === id)
-      })
-      if (this.$socket.id === id) {
-        this.isPause = true
-        if (this.gameIsStarted) {
-          this.nextStep(this.gameSteps[0], this.duration)
-        }
+    newInitiator() {
+      if (this.gameIsStarted) {
+        this.nextStep(this.gameSteps[0], this.duration)
       }
     },
     updatePlayerInfo(settings) {
@@ -876,7 +869,6 @@ export default {
       }
     },
     updateRoomInfo(settings) {
-      console.log(settings)
       // console.log('ROOM_INFO', settings)
       Object.entries(settings).forEach(([key, value]) => {
         this[key] = value
@@ -1107,22 +1099,10 @@ export default {
     },
     checkPeerDisconnect(event, peerUuid) {
       const state = this.findPc(peerUuid)?.pc?.iceConnectionState
-      console.log(`connection with peer ${peerUuid} ${state}`)
+      // console.log(`connection with peer ${peerUuid} ${state}`)
       if (['failed', 'closed', 'disconnected'].includes(state)) {
         this.$delete(this.findPc(peerUuid), 'stream')
         this.$delete(this.findPc(peerUuid), 'pc')
-        //   console.log('DELETE PEER', peerUuid)
-        //   this.isPause = true
-        // if (this.findPc(peerUuid).isInitiator) {
-        //   const player = this.peerConnections
-        //     .filter(pc => pc.isAlive && !pc.isInitiator)
-        //     .sort((pcA, pcB) => (pcA.isAlive ? 1 : -1))
-        //     .find(pc => !pc.isInitiator)
-        //   this.newInitiator({id: player.id})
-        // }
-        // this.$delete(this.findPc(peerUuid), 'stream')
-        // this.$delete(this.findPc(peerUuid), 'pc')
-        // this.peerConnections = this.peerConnections.filter(pc => pc.id !== peerUuid)
       }
     },
     errorHandler(e) {
@@ -1173,9 +1153,11 @@ export default {
     toggleVideo({id, room, state = null}) {
       // console.log(id, room)
       const {stream} = this.findPc(id)
-      const track = stream.getVideoTracks()[0]
-      if (track) {
-        this.$socket.emit('toggleVideo', {id, room, state: state ?? !track.enabled})
+      if (stream) {
+        const track = stream.getVideoTracks()[0]
+        if (track) {
+          this.$socket.emit('toggleVideo', {id, room, state: state ?? !track.enabled})
+        }
       }
     },
 
@@ -1188,9 +1170,11 @@ export default {
     toggleAudio({id, room, state = null}) {
       // console.log(id, room)
       const {stream} = this.findPc(id)
-      const track = stream.getAudioTracks()[0]
-      if (track) {
-        this.$socket.emit('toggleAudio', {id, room, state: state ?? !track.enabled})
+      if (stream) {
+        const track = stream.getAudioTracks()[0]
+        if (track) {
+          this.$socket.emit('toggleAudio', {id, room, state: state ?? !track.enabled})
+        }
       }
     },
 
@@ -1417,11 +1401,32 @@ export default {
       }
     },
     newInitiator({id}) {
-      this.$set(this.findPc(this.$socket.id), 'isInitiator', false)
       clearInterval(this.timer)
+
+      const player = this.findPc(this.$socket.id)
+      this.$set(player, 'isInitiator', false)
+      this.$socket.emit('updatePlayerInfo', {
+        room: this.room,
+        id: player.id,
+        isInitiator: player.isInitiator
+      })
+
+      const playerInitiator = this.findPc(id)
+      this.$set(playerInitiator, 'isInitiator', true)
+      this.$socket.emit('updatePlayerInfo', {
+        room: this.room,
+        id: playerInitiator.id,
+        isInitiator: playerInitiator.isInitiator
+      })
+
+      this.isPause = true
+      this.$socket.emit('updateRoomInfo', {
+        room: this.room,
+        isPause: this.isPause
+      })
+
       this.$socket.emit('newInitiator', {
-        id,
-        room: this.room
+        id
       })
     },
     secondVoting(players) {
