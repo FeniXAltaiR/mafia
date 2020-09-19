@@ -8,7 +8,12 @@
     "password": "Пароль",
     "rooms": "Комнаты",
     "search": "Поиск",
-    "contacts": "Контакты"
+    "contacts": "Контакты",
+    "state": "Состояние",
+    "gameIsStarted": "Игра началась",
+    "expectation": "Ожидание",
+    "yes": "Да",
+    "no": "Нет"
   },
   "mafia": {
     "play": "Продолжить",

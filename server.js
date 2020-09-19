@@ -147,19 +147,21 @@ sock.on('connect', socket => {
             id => !peerConnections[id].isInitiator && peerConnections[id].isAlive
           )
 
-          peerConnections[playerInitiator].isInitiator = true
-          socket.to(room).emit('updatePlayerInfo', {
-            id: playerInitiator,
-            isInitiator: peerConnections[playerInitiator].isInitiator
-          })
+          if (peerConnections?.[playerInitiator]) {
+            peerConnections[playerInitiator].isInitiator = true
+            socket.to(room).emit('updatePlayerInfo', {
+              id: playerInitiator,
+              isInitiator: peerConnections[playerInitiator].isInitiator
+            })
 
-          player.isInitiator = false
-          socket.to(room).emit('updatePlayerInfo', {
-            id: player.id,
-            isInitiator: player.isInitiator
-          })
+            player.isInitiator = false
+            socket.to(room).emit('updatePlayerInfo', {
+              id: player.id,
+              isInitiator: player.isInitiator
+            })
 
-          socket.to(playerInitiator).emit('newInitiator')
+            socket.to(playerInitiator).emit('newInitiator')
+          }
         }
       }
     })
@@ -292,7 +294,7 @@ sock.on('connect', socket => {
 
   socket.on('getRooms', () => {
     const rooms = getRooms()
-      .filter(room => !connections[room].gameIsStarted)
+      // .filter(room => !connections[room].gameIsStarted)
       .map(room => ({
         ...connections[room],
         players: playersInRoom(room)

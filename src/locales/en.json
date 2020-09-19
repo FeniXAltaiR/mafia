@@ -8,7 +8,12 @@
     "password": "Password",
     "rooms": "Rooms",
     "search": "Search",
-    "contacts": "Contacts"
+    "contacts": "Contacts",
+    "state": "State",
+    "gameIsStarted": "Game is started",
+    "expectation": "expectation",
+    "yes": "Yes",
+    "no": "No"
   },
   "mafia": {
     "play": "Play",

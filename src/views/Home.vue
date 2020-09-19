@@ -41,14 +41,28 @@
         height="60vh"
       >
         <template v-slot:header.name="{header}">
-          {{ $t(`main.${header.value}`) }}
+          {{ $t(`main.${header.text}`) }}
         </template>
         <template v-slot:header.players="{header}">
-          {{ $t(`main.${header.value}`) }}
+          {{ $t(`main.${header.text}`) }}
         </template>
         <template v-slot:header.isInitiator="{header}">
-          {{ $t(`main.${header.value}`) }}
+          {{ $t(`main.${header.text}`) }}
         </template>
+        <template v-slot:header.gameIsStarted="{header}">
+          {{ $t(`main.${header.text}`) }}
+        </template>
+        <template v-slot:header.password="{header}">
+          {{ $t(`main.${header.text}`) }}
+        </template>
+
+        <template v-slot:item.gameIsStarted="{value}">
+          {{ $t(`main.${value ? 'gameIsStarted' : 'expectation'}`) }}
+        </template>
+        <template v-slot:item.password="{value}">
+          {{ $t(`main.${value ? 'yes' : 'no'}`) }}
+        </template>
+
         <template v-slot:top>
           <v-card flat dark class="px-4 d-flex align-center justify-space-between">
             <v-card-title class="px-0 text-h5">{{ $t('main.rooms') }}</v-card-title>
@@ -88,13 +102,15 @@ export default {
     timer_getRooms: null,
     headers: [
       {
-        text: 'Name',
+        text: 'name',
         align: 'start',
         sortable: false,
         value: 'name'
       },
-      {text: 'Players', value: 'players'},
-      {text: 'Initiator', value: 'isInitiator'},
+      {text: 'players', value: 'players'},
+      {text: 'isInitiator', value: 'isInitiator'},
+      {text: 'state', value: 'gameIsStarted'},
+      {text: 'password', value: 'password'},
       {text: '', value: 'actions', sortable: false}
     ],
     rooms: []
@@ -102,14 +118,15 @@ export default {
 
   sockets: {
     getRooms(rooms) {
-      this.rooms = rooms.map(room => {
-        const peerConnections = Object.values(room.peerConnections)
-        const isInitiator = peerConnections.find(pc => pc.isInitiator)
+      this.rooms = rooms.map(({peerConnections, name, room, players, gameIsStarted, password}) => {
+        const isInitiator = Object.values(peerConnections).find(pc => pc.isInitiator)
         return {
-          name: room.name || room.room,
-          players: room.players.length,
+          name: name || room,
+          room,
+          players: players.length,
           isInitiator: isInitiator.displayName || isInitiator.id,
-          room: room.room
+          gameIsStarted,
+          password
         }
       })
     }
