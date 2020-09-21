@@ -256,6 +256,7 @@
                               <v-list-item-title>{{ $t('mafia.newInitiator') }}</v-list-item-title>
                             </v-list-item>
                             <v-list-item
+                              v-if="!gameIsStarted"
                               @click="openDialogAlert({method: banPlayer, args: [player]})"
                             >
                               <v-list-item-title>{{ $t('mafia.banPlayer') }}</v-list-item-title>
@@ -979,8 +980,10 @@ export default {
         video: {
           // frameRate: { max: 30 },
           mandatory: {
-            maxWidth: 480,
-            maxHeight: 320
+            // maxWidth: 640,
+            // maxHeight: 360,
+            maxWidth: 1280,
+            maxHeight: 720
           }
         },
         // audio: true,
