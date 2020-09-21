@@ -7,7 +7,9 @@
       <!-- <v-btn icon small class="mr-2" @click="toggleDrawer">
         <v-icon>mdi-menu</v-icon>
       </v-btn> -->
-      <h2 @click="goToMainPage" style="cursor: pointer;">MAFIOZI</h2>
+      <v-btn icon class="grey darken-4 ml-1" small @click="goToMainPage" style="cursor: pointer;">
+        <img src="@/assets/logo.svg" alt="" height="24px" width="24px" />
+      </v-btn>
       <v-spacer></v-spacer>
       <v-menu absolute>
         <template v-slot:activator="{on}">

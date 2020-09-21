@@ -104,7 +104,6 @@ export default {
       {
         text: 'name',
         align: 'start',
-        sortable: false,
         value: 'name'
       },
       {text: 'players', value: 'players'},

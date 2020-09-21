@@ -892,7 +892,7 @@ export default {
       }
     },
     join(settings) {
-      // console.log('JOIN')
+      console.log('JOIN')
       const {stream, pc, ...mySettings} = this.findPc(this.$socket.id)
       this.setUpPeer(settings)
       this.$socket.emit('createOffer', {
@@ -901,7 +901,7 @@ export default {
       })
     },
     createOffer(settings) {
-      // console.log('CREATE OFFER')
+      console.log('CREATE OFFER')
       this.setUpPeer(settings)
       this.findPc(settings.id)
         .pc.createOffer()
@@ -909,7 +909,7 @@ export default {
         .catch(this.errorHandler)
     },
     description({uuid: peerUuid, sdp}) {
-      // console.log('SDP_TYPE', sdp.type)
+      console.log('SDP_TYPE', sdp.type)
       this.findPc(peerUuid)
         .pc.setRemoteDescription(new RTCSessionDescription(sdp))
         .then(() => {
@@ -1714,17 +1714,19 @@ export default {
     },
     randezvous(duration = 60000) {
       return [
-        ...this.peerConnections.map(player => ({
-          method: 'executeGameStep',
-          options: {
-            duration,
-            info: {
-              text: `${this.$t('mafia.randezvous')}: ${player.displayName}`,
-              type: 'randezvous',
-              active: player.id
+        ...this.peerConnections
+          .filter(player => player.stream)
+          .map(player => ({
+            method: 'executeGameStep',
+            options: {
+              duration,
+              info: {
+                text: `${this.$t('mafia.randezvous')}: ${player.displayName}`,
+                type: 'randezvous',
+                active: player.id
+              }
             }
-          }
-        })),
+          })),
         {
           method: 'setGameNight'
         }
@@ -1929,7 +1931,7 @@ export default {
           }
         },
         ...this.peerConnections
-          .filter(player => player.isAlive)
+          .filter(player => player.isAlive && player.stream)
           .map(player => ({
             method: 'executeGameStep',
             options: {
