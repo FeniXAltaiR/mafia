@@ -182,7 +182,7 @@ export default {
       firebase.initializeApp(firebaseConfig)
       firebase.auth().onAuthStateChanged(user => {
         this.$store.commit('SET_USER_DATA', user ?? {})
-        if (user.displayName) {
+        if (user?.displayName) {
           localStorage.setItem('displayName', user.displayName)
         }
       })

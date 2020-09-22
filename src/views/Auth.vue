@@ -47,6 +47,9 @@ export default {
           {
             provider: firebase.auth.GoogleAuthProvider.PROVIDER_ID
             // buttonColor: '#2F2F2F',
+          },
+          {
+            provider: firebase.auth.GithubAuthProvider.PROVIDER_ID
           }
         ]
       }
