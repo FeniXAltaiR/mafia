@@ -196,10 +196,10 @@
         <template>
           <v-row class="justify-center px-1 fill-height">
             <div
-              style="position: relative; width: 100%; height: 100%"
-              class="d-flex align-center align-self-stretch"
+              style="position: relative; width: 100%; height: 100%; border-radius: 8px"
+              class="d-flex align-center align-self-stretch black"
             >
-              <div v-if="player.stream">
+              <div v-if="player.stream" class="d-flex justify-center" style="width: 100%">
                 <video
                   :srcObject.prop="player.stream"
                   autoplay
@@ -207,7 +207,6 @@
                   :style="getVideoStyle"
                   :data-id="player.id"
                   style="object-fit: cover"
-                  class="d-flex align-center"
                 ></video>
               </div>
               <div
@@ -415,6 +414,7 @@
                                 <span class="pointer" v-on="on">{{ badgeContent(player) }}</span>
                               </template>
                               <div v-for="id in getListPlayers(player)" :key="id">
+                                <span>{{ findIndexPc(id) + 1 }} | </span>
                                 <span>{{ findPc(id).displayName }}</span>
                               </div>
                             </v-tooltip>
