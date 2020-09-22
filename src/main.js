@@ -4,6 +4,7 @@ import router from './router'
 import store from './store'
 
 import '@/assets/css/index.css'
+import 'firebaseui/dist/firebaseui.css'
 
 import VueSocketio from 'vue-socket.io'
 import vuetify from './plugins/vuetify'

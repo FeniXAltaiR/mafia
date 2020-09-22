@@ -13,7 +13,11 @@
     "gameIsStarted": "Game is started",
     "expectation": "expectation",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "account": "Account",
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "auth": "Authorization"
   },
   "mafia": {
     "play": "Play",

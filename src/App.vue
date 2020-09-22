@@ -14,7 +14,7 @@
       <v-menu absolute>
         <template v-slot:activator="{on}">
           <v-slide-x-transition>
-            <v-btn icon v-on="on" class="white--text">
+            <v-btn icon v-on="on">
               <v-icon>mdi-web</v-icon>
             </v-btn>
           </v-slide-x-transition>
@@ -28,16 +28,60 @@
           </v-list-item>
         </v-list>
       </v-menu>
-      <v-slide-x-transition>
-        <v-btn icon v-if="userData.id">
-          <v-img :src="userData.avatar_url" style="max-height: 20px; max-width: 20px"></v-img>
-        </v-btn>
-      </v-slide-x-transition>
-      <v-slide-x-transition>
-        <v-btn icon v-if="userData.id" @click="logout">
-          <v-icon>mdi-exit-to-app</v-icon>
-        </v-btn>
-      </v-slide-x-transition>
+      <v-menu
+        absolute
+        :close-on-content-click="false"
+        min-width="280px"
+        max-width="360px"
+        v-model="menuAccount"
+      >
+        <template v-slot:activator="{on}">
+          <v-slide-x-transition>
+            <v-btn icon v-on="on" v-if="userData.uid">
+              <v-img
+                :src="userData.photoURL"
+                class="rounded-pill"
+                style="max-height: 24px; max-width: 24px"
+              ></v-img>
+            </v-btn>
+          </v-slide-x-transition>
+        </template>
+        <v-card dark class="px-4">
+          <v-col>
+            <v-row class="justify-space-between align-center">
+              <span>{{ $t('main.account') }}</span>
+              <v-btn icon small color="main_color" @click="menuAccount = false">
+                <v-icon>mdi-close</v-icon>
+              </v-btn>
+            </v-row>
+          </v-col>
+          <v-divider class="main_color"></v-divider>
+          <v-col>
+            <v-row class="align-center my-2">
+              <v-img
+                :src="userData.photoURL"
+                class="rounded-pill"
+                style="max-height: 48px; max-width: 48px"
+              ></v-img>
+              <div class="ml-4">
+                <h4>{{ userData.displayName }}</h4>
+                <h5 class="grey--text">{{ userData.email }}</h5>
+              </div>
+            </v-row>
+          </v-col>
+          <v-divider class="main_color"></v-divider>
+          <v-col>
+            <v-row class="justify-end">
+              <v-btn color="accent_color" text @click="signOut">
+                {{ $t('main.signOut') }}
+              </v-btn>
+            </v-row>
+          </v-col>
+        </v-card>
+      </v-menu>
+      <v-btn class="accent_color" v-if="!userData.uid" @click="$router.push('/auth')">
+        <span>{{ $t('main.signIn') }}</span>
+      </v-btn>
     </v-app-bar>
 
     <v-main>
@@ -83,6 +127,8 @@
 </template>
 
 <script>
+import firebase from 'firebase'
+
 import {mapGetters} from 'vuex'
 
 export default {
@@ -90,6 +136,8 @@ export default {
     drawer: false,
     bar: true,
     footer: false,
+
+    menuAccount: false,
 
     dialogContacts: {
       value: false
@@ -114,12 +162,31 @@ export default {
     }
   },
   mounted() {
+    this.init()
     // fetch('/test')
-    // this.getToken()
     this.setBar()
   },
 
   methods: {
+    init() {
+      const firebaseConfig = {
+        apiKey: 'AIzaSyAtykimv3bVxDrP5_Ha554Jdz6AwP4bSYY',
+        authDomain: 'green-diagram-263013.firebaseapp.com',
+        databaseURL: 'https://green-diagram-263013.firebaseio.com',
+        projectId: 'green-diagram-263013',
+        storageBucket: 'green-diagram-263013.appspot.com',
+        messagingSenderId: '143390169121',
+        appId: '1:143390169121:web:61a376935c510939ee2b60',
+        measurementId: 'G-GDTWSNECG4'
+      }
+      firebase.initializeApp(firebaseConfig)
+      firebase.auth().onAuthStateChanged(user => {
+        this.$store.commit('SET_USER_DATA', user ?? {})
+        if (user.displayName) {
+          localStorage.setItem('displayName', user.displayName)
+        }
+      })
+    },
     setBar() {
       const {room} = this.$route.params
       if (room) {
@@ -141,26 +208,9 @@ export default {
       this.$i18n.locale = locale
       localStorage.setItem('locale', locale)
     },
-    async getToken() {
-      const getUrl = () => {
-        const {code} = this.$route.query
-
-        if (code) {
-          return `/login/github/callback?code=${code}`
-        }
-
-        return `/login/github/user`
-      }
-
-      const url = getUrl()
-      const res = await fetch(url)
-      const data = await res.json()
-      this.$store.commit('SET_USER_DATA', data)
-      // this.$router.push('/')
-    },
-    async logout() {
-      await fetch('/login/logout')
-      this.$store.commit('SET_USER_DATA', {})
+    signOut() {
+      this.menuAccount = false
+      firebase.auth().signOut()
     }
   }
 }

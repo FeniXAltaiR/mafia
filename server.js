@@ -26,63 +26,6 @@ app.use((req, res, next) => {
 // const client_secret = 'dfcea049283f8a46c899c927999b8d927ba84713'
 // console.log({ client_id, client_secret });
 
-// app.get('/login/github', (req, res) => {
-//   const redirect_uri = 'http://localhost:8080/'
-//   res.redirect(
-//     `https://github.com/login/oauth/authorize?client_id=${client_id}&redirect_uri=${redirect_uri}`
-//   )
-// })
-
-// async function getAccessToken({code, client_id, client_secret}) {
-//   const request = await fetch('https://github.com/login/oauth/access_token', {
-//     method: 'POST',
-//     headers: {
-//       'Content-Type': 'application/json'
-//     },
-//     body: JSON.stringify({
-//       client_id,
-//       client_secret,
-//       code
-//     })
-//   })
-//   const text = await request.text()
-//   const params = new URLSearchParams(text)
-//   return params.get('access_token')
-// }
-
-// async function fetchGitHubUser(token) {
-//   const request = await fetch('https://api.github.com/user', {
-//     headers: {
-//       Authorization: 'token ' + token
-//     }
-//   })
-//   return await request.json()
-// }
-
-// app.get('/login/github/user', async (req, res) => {
-//   const token = req.session.access_token
-//   const user = await fetchGitHubUser(token)
-//   res.send(user)
-// })
-
-// app.get('/login/github/callback', async (req, res) => {
-//   const code = req.query.code
-//   const access_token = await getAccessToken({code, client_id, client_secret})
-//   const user = await fetchGitHubUser(access_token)
-//   if (user) {
-//     req.session.access_token = access_token
-//     req.session.githubId = user.id
-//     res.send(JSON.stringify(user, null, 2))
-//   } else {
-//     res.send('Login did not succeed!')
-//   }
-// })
-
-// app.get('/login/logout', (req, res) => {
-//   if (req.session) req.session = null
-//   res.send(JSON.stringify({}, null, 2))
-// })
-
 app.get('/test', (req, res) => {
   res.send(JSON.stringify({text: 'test'}, null, 2))
 })
