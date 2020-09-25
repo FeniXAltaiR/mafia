@@ -1283,7 +1283,7 @@ export default {
         })
       })
     },
-    exile(duration = 5000) {
+    exile({duration = 5000} = {}) {
       const maxVotePlayers = this.peerConnections.reduce((result, pc) => {
         const {votePlayers = []} = result[0] || {}
 
@@ -1982,6 +1982,7 @@ export default {
         {
           method: 'executeGameStep',
           options: {
+            duration: 10000,
             info: {
               text: this.$t('mafia.votingResult'),
               type: 'voting'
@@ -1994,14 +1995,9 @@ export default {
           }
         },
         {
-          method: 'executeGameStep',
+          method: 'exile',
           options: {
-            duration: 1000,
-            methods: [
-              {
-                f: 'exile'
-              }
-            ]
+            duration: 5000
           }
         }
       ]

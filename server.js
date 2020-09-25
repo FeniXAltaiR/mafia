@@ -86,15 +86,16 @@ sock.on('connect', socket => {
       if (peerConnections) {
         const player = peerConnections?.[socket.id]
         if (player.isInitiator) {
-          const playerInitiator = Object.keys(peerConnections).find(
+          const players = playersInRoom(room)
+          const player_id = players.find(
             id => !peerConnections[id].isInitiator && peerConnections[id].isAlive
           )
 
-          if (peerConnections?.[playerInitiator]) {
-            peerConnections[playerInitiator].isInitiator = true
+          if (peerConnections?.[player_id]) {
+            peerConnections[player_id].isInitiator = true
             socket.to(room).emit('updatePlayerInfo', {
-              id: playerInitiator,
-              isInitiator: peerConnections[playerInitiator].isInitiator
+              id: player_id,
+              isInitiator: peerConnections[player_id].isInitiator
             })
 
             player.isInitiator = false
@@ -103,7 +104,7 @@ sock.on('connect', socket => {
               isInitiator: player.isInitiator
             })
 
-            socket.to(playerInitiator).emit('newInitiator')
+            socket.to(player_id).emit('newInitiator')
           }
         }
       }
