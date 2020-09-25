@@ -210,17 +210,16 @@
                 ></video>
               </div>
               <div
-                v-if="!player.stream"
+                v-if="streamOff(player)"
                 class="d-flex px-2 pb-3 pt-1 align-center justify-center white--text black"
                 style="height: 100%; width: 100%; top: 0; position: absolute; border-radius: 8px;"
               >
-                <h1>{{ findPc(player.id).displayName }}</h1>
-              </div>
-              <div
-                v-else-if="!player.isVideo"
-                class="d-flex px-2 pb-3 pt-1 align-center justify-center white--text"
-                style="height: 100%; width: 100%; position: absolute; top: 0; border-radius: 8px;"
-              >
+                <v-img
+                  v-if="player.photoURL"
+                  class="rounded-pill mr-2"
+                  :src="player.photoURL"
+                  style="max-height: 48px; max-width: 48px"
+                ></v-img>
                 <h1>{{ findPc(player.id).displayName }}</h1>
               </div>
               <v-hover v-slot:default="{hover}" open-delay="200">
@@ -831,6 +830,9 @@ export default {
           track.stop()
         })
       }
+      if (player.pc) {
+        player.pc.close()
+      }
       // this.$delete(player, 'stream')
       // this.$delete(player, 'pc')
     },
@@ -1021,6 +1023,7 @@ export default {
       const settings = {
         id: this.$socket.id,
         displayName: this.userData.name || localStorage.getItem('displayName'),
+        photoURL: this.userData?.photoURL,
         room: this.room,
         killPlayers: [],
         votePlayers: [],
@@ -1046,6 +1049,13 @@ export default {
         const video = document.querySelector(`video[data-id="${this.$socket.id}"]`)
         video.muted = true
       })
+    },
+    streamOff(player) {
+      return (
+        !player.stream ||
+        !player.isVideo ||
+        ['failed', 'closed', 'disconnected'].includes(player?.pc?.connectionState)
+      )
     },
     getFullscreen(id) {
       const video = document.querySelector(`video[data-id="${id}"]`)

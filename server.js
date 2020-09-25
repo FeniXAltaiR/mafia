@@ -162,8 +162,8 @@ sock.on('connect', socket => {
           id: socket.id,
           isInitiator: players.length === 0
         }
-        connections[room].peerConnections[socket.id] = player
         delete peerConnections[existPlayer.id]
+        peerConnections[socket.id] = player
         sock.to(room).emit('updatePlayerInfo', player)
         socket.emit('updateRoomInfo', roomSettings)
         socket.to(room).emit('join', player)

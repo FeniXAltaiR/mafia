@@ -5,7 +5,7 @@
         <v-card-title class="justify-center">
           <span class="headline">{{ $t('main.auth') }}</span>
         </v-card-title>
-        <v-divider class="main_color mb-4"></v-divider>
+        <v-divider class="main_color"></v-divider>
         <v-card-text>
           <div id="firebaseui-auth-container" class="pr-6"></div>
         </v-card-text>
