@@ -93,7 +93,15 @@
     "not ie <= 10"
   ],
   "jest": {
-    "preset": "@vue/cli-plugin-unit-jest"
+    "preset": "@vue/cli-plugin-unit-jest",
+    "collectCoverage": true,
+    "coverageReporters": ["json", "lcov", "text", "clover", "text-summary", "html"],
+    "collectCoverageFrom": [
+      "src/**/*.{js,vue}",
+      "!src/main.js",
+      "!src/i18n.js",
+      "!src/plugins/vuetify.js"
+    ]
   },
   "gitHooks": {
     "pre-commit": "lint-staged"

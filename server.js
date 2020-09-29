@@ -20,12 +20,6 @@ app.use((req, res, next) => {
   next()
 })
 
-// const client_id = process.env.GITHUB_CLIENT_ID;
-// const client_id = 'ff10989e8ed773fadf6b'
-// const client_secret = process.env.GITHUB_CLIENT_SECRET;
-// const client_secret = 'dfcea049283f8a46c899c927999b8d927ba84713'
-// console.log({ client_id, client_secret });
-
 app.get('/test', (req, res) => {
   res.send(JSON.stringify({text: 'test'}, null, 2))
 })

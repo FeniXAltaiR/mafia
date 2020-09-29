@@ -135,7 +135,7 @@ export default {
   data: () => ({
     drawer: false,
     bar: true,
-    footer: false,
+    footer: true,
 
     menuAccount: false,
 
@@ -149,7 +149,7 @@ export default {
 
   sockets: {
     connect() {
-      console.log('CONNECT:', this.$socket.id)
+      // console.log('CONNECT:', this.$socket.id)
       if (!localStorage.getItem('id')) {
         localStorage.setItem('id', this.$socket.id)
       }
