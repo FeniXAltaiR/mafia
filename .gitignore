@@ -7,8 +7,12 @@ node_modules
 .env.local
 .env.*.local
 nginx.conf
+
+# personal files
 *.sublime-project
 *.sublime-workspace
+firebase_key.json
+
 
 # Log files
 npm-debug.log*

@@ -4,6 +4,14 @@ const fetch = require('node-fetch')
 const cookieSession = require('cookie-session')
 const socketio = require('socket.io')
 
+const admin = require('firebase-admin')
+const serviceAccount = require('./firebase_key.json')
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  databaseURL: 'https://green-diagram-263013.firebaseio.com'
+})
+const db = admin.firestore()
+
 app.use(express.static('public'))
 app.use(
   cookieSession({
@@ -55,12 +63,21 @@ sock.on('connect', socket => {
       id: socket.id,
       global_id: query.global_id
     }
+    db.collection('users')
+      .doc(socket.id)
+      .set({
+        id: socket.id,
+        global_id: query.global_id
+      })
   }
   const updateRoomInfo = ({room, ...settings}) => {
     if (connections[room]) {
       Object.entries(settings).forEach(([key, value]) => {
         connections[room][key] = value
       })
+      db.collection('rooms')
+        .doc(room)
+        .update(settings)
       socket.to(room).emit('updateRoomInfo', settings)
     }
   }
@@ -109,6 +126,9 @@ sock.on('connect', socket => {
     })
 
     delete connections[socket.id]
+    db.collection('users')
+      .doc(socket.id)
+      .delete()
   })
 
   socket.on('leaveFromRoom', ({room}) => {
@@ -117,6 +137,9 @@ sock.on('connect', socket => {
     const players = playersInRoom(room)
     if (!players.length) {
       delete connections[room]
+      db.collection('rooms')
+        .doc(room)
+        .delete()
     }
 
     socket.to(room).emit('disconnectPlayer', {id: socket.id})
@@ -135,7 +158,7 @@ sock.on('connect', socket => {
       return sameGlobalId
     }
     const addRoomToConnections = room => {
-      connections[room] = {
+      const newRoom = {
         ...(connections[room] ?? {}),
         room,
         limit: 10,
@@ -149,6 +172,10 @@ sock.on('connect', socket => {
         isSecondVoting: false,
         peerConnections: {}
       }
+      connections[room] = newRoom
+      db.collection('rooms')
+        .doc(room)
+        .set(newRoom)
     }
     const addPlayertoRoom = () => {
       const {global_id} = socket.handshake.query
@@ -232,6 +259,9 @@ sock.on('connect', socket => {
 
   socket.on('createRoom', settings => {
     connections[settings.room] = settings
+    db.collection('rooms')
+      .doc(settings.room)
+      .set(settings)
   })
 
   socket.on('getRooms', () => {
