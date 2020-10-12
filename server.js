@@ -66,7 +66,11 @@ sock.on('connect', socket => {
   }
 
   addSocketToConnections()
-  // socket.emit('test', connections)
+
+  socket.on('test', msg => {
+    console.log('TEST')
+    socket.emit('test', msg)
+  })
 
   socket.on('disconnecting', () => {
     const rooms = Object.keys(socket.rooms)
@@ -256,9 +260,11 @@ sock.on('connect', socket => {
   })
 
   socket.on('toggleVideo', ({id, room, state}) => {
-    const {peerConnections} = connections[room]
-    peerConnections[id].isVideo = state
-    sock.in(room).emit('toggleVideo', {id, state})
+    const {peerConnections} = connections?.[room]
+    if (peerConnections) {
+      peerConnections[id].isVideo = state
+      sock.in(room).emit('toggleVideo', {id, state})
+    }
   })
 
   socket.on('toggleAudio', ({id, room, state}) => {

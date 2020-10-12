@@ -7,6 +7,8 @@ node_modules
 .env.local
 .env.*.local
 nginx.conf
+*.sublime-project
+*.sublime-workspace
 
 # Log files
 npm-debug.log*
